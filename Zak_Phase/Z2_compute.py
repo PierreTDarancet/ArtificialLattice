@@ -70,7 +70,7 @@ def zak_bands(sys, args=(), momenta=65, file=None, *, params=None,dim=3):
 
     def h_k(k):
         # H_k = H_0 + V e^-ik + V^\dagger e^ik
-        mat = hop * cmath.exp(-1j * np.array(k[0]))
+        mat = hop * cmath.exp(-1j * np.array(2*np.pi*k[0]))
         mat +=  mat.conjugate().transpose() + ham
         return mat
 
