@@ -136,7 +136,8 @@ def zak_bands(sys, args=(), momenta=65, file=None, show=True, dpi=None,
     syst = sys  # for naming consistency inside function bodies
     momenta = np.array(momenta)
     if momenta.ndim != 1:
-        momenta = np.linspace(-np.pi, np.pi, momenta)
+        #momenta = np.linspace(-np.pi, np.pi, momenta)
+        momenta = np.linspace(0, 2*np.pi, momenta)
 
     # expand out the contents of 'physics.Bands' to get the H(k),
     # because 'spectrum' already does the diagonalisation.
@@ -150,12 +151,13 @@ def zak_bands(sys, args=(), momenta=65, file=None, show=True, dpi=None,
 
     def h_k(k):
         # H_k = H_0 + V e^-ik + V^\dagger e^ik
-        mat = hop * cmath.exp(-1j * k)
+        mat = hop * cmath.exp(-1j * np.array(k))
         mat +=  mat.conjugate().transpose() + ham
         return mat
 
     return spectrum(h_k, ('k', momenta), file=file, show=show, dpi=dpi,
                     fig_size=fig_size, ax=ax)
+    #return h_k
 
 
 def spectrum(syst, x, y=None, params=None, mask=None, file=None,
