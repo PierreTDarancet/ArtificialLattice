@@ -1,0 +1,83 @@
+from math import floor
+from Zak_compute import zak_bands
+Zigzag = kwant.lattice.general([[1,0],[0,np.sqrt(3)/3]], #Lattice vectors
+                                     [[1/6,np.sqrt(3)/2],[2/6,0],[4/6,0],[5/6,np.sqrt(3)/2]]) # Coordinates
+def get_width(N=7): 
+    if N < 2: 
+        raise("N cannot be less than 2")
+    else:
+        return int(N/2)*Zigzag.prim_vecs[1][1]
+    
+def get_length(L=8): 
+    if L < 2: 
+        raise("L cannot be less than 1")
+    else:
+        return (L/4)*Zigzag.prim_vecs[0][0]
+
+def delete_section(pos): 
+    x,y = pos 
+    a = Zigzag.prim_vecs[0][0]
+    b = Zigzag.prim_vecs[1][1]
+    n = floor(x/a)
+    if 0< y < n*1.5*b: 
+        return True 
+    else: 
+        return False
+    
+def make_1D_zigzag(N=7):
+    syst = kwant.Builder(kwant.TranslationalSymmetry(Zigzag.prim_vecs[0]))
+    syst[Zigzag.shape((lambda pos: pos[1] >=0 and pos[1] <= get_width(N)),(0,0))] = 0
+    syst[Zigzag.neighbors()] = -1
+    return syst
+
+def make_zigzag_ribbon(N=7, L = 20):
+    """Returns a zigzag terminated (along -x direction) nanoribbon 
+    with length L and width of N carbon atoms
+    
+    Parameters: 
+    ========== 
+    
+    N = Number of C atoms (width)
+    L = Length of the nanoribbon along -x direction 
+    
+    Returns: 
+    =======  
+    Instance of kwant.Builder() with the desired nanoribbon geometery 
+    """
+    
+    Zigzag = kwant.lattice.general([[1,0],[0,np.sqrt(3)/3]],      #Lattice vectors
+                                    [[1/6,0],[2/6,np.sqrt(3)/2],  # Coordinates
+                                    [4/6,np.sqrt(3)/2],[5/6,0]]) 
+    Z_ribbon = kwant.Builder()
+    
+
+    
+    Z_ribbon[Zigzag.shape((lambda pos: pos[1] >= 0 and pos[1]<= get_width(N) 
+                           and pos[0] >= 0 and pos[0] <= L), (0,0))] = 1 
+    Z_ribbon[Zigzag.neighbors()] = -1 
+    return Z_ribbon 
+
+from ipywidgets import interact
+def plot_wf_ribbon(syst,i_start,i_end,ham):
+    """Plot the wave function mapping on system with Hamiltonian 
+    "ham" in a PyWidget starting from band index i_start and 
+    ending at i_end"""
+    eig_val,eig_vec = la.eigh(ham)
+    def plot_band(i=0): 
+        print("Plotting wave function with index",i)
+        print("Energy of the corresponding mode",eig_val[i], "x t")
+        fig = kwant.plotter.map(syst,abs(eig_vec[:,i])**2,oversampling=5)
+        #fig.savefig('figures/%s.jpg'%i,dpi=400,quality=100,transparent=True)
+    
+    interact(plot_band,i=(i_start,i_end))
+
+def plot_wf(syst,i_start,i_end,eig_vecs,eig_val):
+    """Plot the wave function mapping on system with Hamiltonian 
+    "ham" in a PyWidget starting from band index i_start and 
+    ending at i_end"""
+    def plot_band(i=0): 
+        print("Plotting wave function with index",i)
+        print("Energy of the corresponding mode",eig_val[i], "x t")
+        fig = kwant.plotter.map(syst,abs(eig_vecs[:,i])**2,oversampling=10,fig_size=(8,5))
+        #fig.savefig('figures/%s.jpg'%i,dpi=400,quality=100,transparent=True)
+    interact(plot_band,i=(i_start,i_end))
