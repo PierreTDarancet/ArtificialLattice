@@ -1,3 +1,13 @@
+from types import SimpleNamespace
+from ipywidgets import interact
+import matplotlib
+from matplotlib import pyplot
+from mpl_toolkits import mplot3d
+import numpy as np
+import scipy.linalg as la 
+import kwant
+from kwant.wraparound import wraparound, plot_2d_bands
+
 %matplotlib inline
 import matplotlib as mpl
 import matplotlib.pyplot as plt
