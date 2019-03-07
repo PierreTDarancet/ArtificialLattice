@@ -138,16 +138,25 @@ def make_cove_edged_graphene(N=10,L=6):
     max_y = y_values[y_values.argsort()[-1]]
     max2nd_y = y_values[y_values.argsort()[-2]]
     
+#    for p,t,f in zip(pos,tag,fam): 
+#        if min2nd_x < p[0] < max_x: 
+#            if abs(p[1]-min_y) < 1.e-3 or abs(p[1] - min2nd_y) < 1.0e-3:
+#                del parent_ribbon[f(t[0],t[1])]
+#        if min_x < p[0] < max2nd_x:
+#            if abs(p[1]-max2nd_y) < 1.e-3 or abs(p[1] - max_y) < 1.0e-3:
+#                del parent_ribbon[f(t[0],t[1])]
+#    cove_ribbon = parent_ribbon
+#    return cove_ribbon
+    
     for p,t,f in zip(pos,tag,fam): 
-        if min2nd_x < p[0] < max_x: 
+        if  p[0] < x_values[x_values.argsort()[3]]:
             if abs(p[1]-min_y) < 1.e-3 or abs(p[1] - min2nd_y) < 1.0e-3:
                 del parent_ribbon[f(t[0],t[1])]
-        if min_x < p[0] < max2nd_x:
+        if min2nd_x < p[0] < max_x:
             if abs(p[1]-max2nd_y) < 1.e-3 or abs(p[1] - max_y) < 1.0e-3:
                 del parent_ribbon[f(t[0],t[1])]
     cove_ribbon = parent_ribbon
     return cove_ribbon
-    
 
 def plot_wf(syst,i_start,i_end,ham):
     """Plot the wave function mapping on system with Hamiltonian
