@@ -19,9 +19,14 @@ Zigzag = kwant.lattice.general([[np.sqrt(3)/3,0],[0,1]], #Lattice vectors
 Armchair = kwant.lattice.general([[1,0],[0,np.sqrt(3)/3.0]], #Lattice vectors
                                      [[1/6,0],[2/6,np.sqrt(3)/2],[4/6,np.sqrt(3)/2],[5/6,0]])
 
+Armchair_trans = kwant.lattice.general([[1,0],[0,np.sqrt(3)/3.0]], #Lattice vectors
+                                    [[1/6,0],[2/6,-1*np.sqrt(3)/2],[4/6,-1*np.sqrt(3)/2],[5/6,0]])
 
-lat_dict = {'armchair':Armchair,'zigzag':Zigzag}
-trans_vec_dict = {'armchair':Armchair.prim_vecs[0],'zigzag':Zigzag.prim_vecs[1]}
+
+lat_dict = {'armchair':Armchair,'zigzag':Zigzag,
+            'armchair_trans':Armchair_trans}
+trans_vec_dict = {'armchair':Armchair.prim_vecs[0],'zigzag':Zigzag.prim_vecs[1],
+                  'armchair_trans':Armchair_trans.prim_vecs[0]}
 
 def momentum_to_lattice(k):
     """Transform momentum to the basis of reciprocal lattice vectors.
@@ -69,14 +74,14 @@ def hopping_lw(site1,site2):
     return 0.1 if A in [site1.family,site2.family] else 0.05
 
 def get_width(N,lat):
-    num_c_atoms_per_cell = {Armchair:2,Zigzag:4} 
-    if N < 2:
-        raise("N cannot be less than 2")
-    else:
-        return (N/num_c_atoms_per_cell[lat])*lat.prim_vecs[1][1]
+    num_c_atoms_per_cell = {Armchair:2,Zigzag:4,
+                            Armchair_trans:2} 
+
+    return float((N/num_c_atoms_per_cell[lat]))*lat.prim_vecs[1][1]
 
 def get_length(L,lat):
-    num_c_atoms_per_cell = {Armchair:4,Zigzag:2}
+    num_c_atoms_per_cell = {Armchair:4,Zigzag:2,
+                            Armchair_trans:4}
     if L < 2:
         raise("L cannot be less than 2")
     else:
@@ -132,12 +137,13 @@ def make_zigzag_ribbon(N=7, L = 5):
     return Z_ribbon
 
 
-def make_1D_cell(N=7,edge='armchair'):
+def make_1D_cell(N=7,edge='armchair',offset=0):
     lat = lat_dict[edge] 
     trans_vec = trans_vec_dict[edge]
     syst = kwant.Builder(kwant.TranslationalSymmetry(trans_vec))
     #syst= kwant.Builder()
-    syst[lat.shape((lambda pos: pos[1] >=0 and pos[1] < get_width(N,lat)),(0,0))] = 0
+    syst[lat.shape((lambda pos: pos[1] >= offset and 
+                    pos[1] < get_width(N,lat)+offset),(0,0))] = 0
     syst[lat.neighbors()] = -1
     return syst
 
