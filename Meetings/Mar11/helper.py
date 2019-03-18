@@ -1,13 +1,10 @@
-from types import SimpleNamespace
 from ipywidgets import interact
 import matplotlib
 from matplotlib import pyplot
-from mpl_toolkits import mplot3d
 import numpy as np
 import scipy.linalg as la 
 import kwant
-from kwant.wraparound import wraparound, plot_2d_bands
-
+import functools
 
 graphene = kwant.lattice.general([[np.sqrt(3)/2,1/2],[np.sqrt(3)/2,-1/2]],  #Lattice vectors 
                                   [[0,0],[1/np.sqrt(3),0]]) # Co-ordinates
@@ -69,9 +66,17 @@ def family_color(site):
 
 def same_color(site): 
     return 0
+
+   
+def hopping_lw(syst):
+    def hopping_lw_by_overlap(site1,site2,syst):    
+        abshop = abs(syst[site1,site2])
+        if abshop <=1: 
+            return 0.1 
+        else:
+            return 0.15
+    return functools.partial(hopping_lw_by_overlap,syst=syst)
     
-def hopping_lw(site1,site2): 
-    return 0.1 if A in [site1.family,site2.family] else 0.05
 
 def get_width(N,lat):
     num_c_atoms_per_cell = {Armchair:2,Zigzag:4,
@@ -257,28 +262,32 @@ def finite_to_1D(system,lat_vec,trans_sym_direction='x'):
     system_1D[lattice_1D.neighbors()] = -1
     return system_1D 
 
-def terminate_edges(syst,lattice,lat_vec): 
+def terminate_edges(syst,delta_t, num_bulk_neigh=3): 
+    """ The overlap or hopping between the edge sties is increased by "delta_t" 
+    effectively performing termination of the sites at the edges to match the 
+    site coodrination of bulk sites
+    
+    Parameters:
+    ==========
+        syst: kwant.Builder instance
+        delta_t: change in overlap after termination 
+        num_bulk_neigh: number of neighbors for bulk sites
+    """
     sites = list(syst.sites())
-    pos = np.array([site.pos for site in sites])
-    ymax = np.max(pos[:,1])
-    ymin = np.min(pos[:,1])
-    edge_index = []
-    for i,p in enumerate(pos): 
-        if abs(p[1] - ymax) < 1.e-2 or abs(p[1]-ymin) < 1.e-2: 
-            edge_index.append(i)
-    nedges = len(edge_index)
-    edge_hoping_pairs = []
-    for i in range(nedges): 
-        site1 = sites[edge_index[i]]
-        #print(site1.pos)
-        neigh_sites = syst.neighbors(site1)
-        for site2 in neigh_sites: 
-            if abs(site2.pos[1] - ymax) < 1.0e-2  or abs(site2.pos[1]-ymin)< 1.0e-2:
-                hop_pair = [site1.tag,site2.tag]
-                pair_seen = hop_pair in edge_hoping_pairs
-                if not pair_seen:
-                    syst[site1,site2] = -1 - 0.1
-                    edge_hoping_pairs.append([site1.tag,site2.tag])         
+    site_degree = [syst.degree(site) for site in sites]
+    edge_sites=[]
+    site_seen = []
+    for i,site in enumerate(sites): 
+        if site_degree[i] < num_bulk_neigh:
+            edge_sites.append(site)
+    for edge_site in edge_sites:  
+        neighbors = syst.neighbors(edge_site)
+        for neigh in neighbors: 
+            if syst.degree(neigh) < num_bulk_neigh:
+                if neigh.tag not in site_seen:
+                    # Hopping for the same pair is increased twice 
+                    # so we only increase half each time 
+                    syst[edge_site,neigh] += delta_t/2.0  
+        site_seen.append(edge_site.tag)
     return syst
 
-    
