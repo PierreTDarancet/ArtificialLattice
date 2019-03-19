@@ -242,23 +242,27 @@ def finite_to_1D(system,lat_vec,trans_sym_direction='x'):
         Currently hard set inside the code"""
     
     sites = list(system.sites())
-    pos = [site.pos for site in sites] 
+    site_pos = [site.pos for site in sites] 
     if trans_sym_direction=='x':
         a = lat_vec
-        b = max(np.array(pos)[:,1])
+        b = max(np.array(site_pos)[:,1])
         trans_vec=[a,0]
     elif trans_sym_direction=='y':
-        a = max(np.array(pos)[:,0])
+        a = max(np.array(site_pos)[:,0])
         b = lat_vec
         trans_vec=[0,b]
     else: 
         raise #"Translation Symmetry direction should be 'x' or 'y'"
-    lattice_1D = kwant.lattice.general([[a,0],[0,b]],pos)
+    lattice_1D = kwant.lattice.general([[a,0],[0,b]],site_pos)
     system_1D = kwant.Builder(kwant.TranslationalSymmetry(trans_vec))
-    if trans_sym_direction=='x':
-        system_1D[lattice_1D.shape((lambda pos: 0< pos[1] <= b),(0,0))]=0 
-    if trans_sym_direction=='y':
-        system_1D[lattice_1D.shape((lambda pos: 0< pos[0] <= a),(0,0))]=0 
+    
+    def fill(pos): 
+        if pos in site_pos: 
+            return True 
+        else: 
+            return False
+        
+    system_1D[lattice_1D.shape(fill,(0,0))]=0 
     system_1D[lattice_1D.neighbors()] = -1
     return system_1D 
 

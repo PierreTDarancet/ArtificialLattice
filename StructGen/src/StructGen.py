@@ -6,9 +6,11 @@ Created on Mon Mar 18 16:27:19 2019
 @author: ssrinivasan
 """
 
-from helper import *
+#from helper import *
+from helper import Armchair,get_width,finite_to_1D
 import kwant
-from random
+import random 
+import numpy as np 
 
 class GenStruct(): 
     def __init__(self): 
@@ -25,26 +27,71 @@ class GenStruct():
         self.make_symmetric(syst)
         return syst
     
-    def make_symmetric(self,syst,symmetry=['inversion'],Ncentral=5):
-        
-        Ncentral = 5
-        ymin = get_width(Ncentral,self.lat)
-        x1,y1 = random.uniform(0,lx),random.uniform(ymin,ly)
-        x2,y2 = random.unifrm
-        
-        
-        def fill_central_strip(site):
-            x,y = site.pos
-            ymin = self.lat.prim_vecs[1][1]
-            if 0<= x < self.lx/2 and 0<=y< ymin: 
-                return True
+    def _get_random_2pts(self,L,w): 
+        pt1 = random.uniform(0,self.ly)
+        if 0 <= pt1 <= w: 
+            pt2 = random.uniform(pt1+w,L)
+        elif L - w <= pt1 <=L: 
+            pt2 = random.uniform(0,pt1-w)
+        else: 
+            prob1 = (pt1-w)/(L-2*w)
+            if random.random() <= prob1:
+                pt2 = random.uniform(0,pt1-w)
             else: 
-                return False 
-        syst[self.lat(fill_central_strip,(0,0))] = self.onsite 
-        n_filled = len(list(syst.sites()))
-        n_maxfill = self.nsites/2.0
-        while nfilled < n_maxfill: 
-            site_nucleate = random.choice(list(syst.sites()))
+                pt2 = random.uniform(pt1+w,L)
+        return pt1,pt2
+    
+    def make_symmetric(self,symmetry=['mirror'],Ncentral=7): 
+               
+        min_width = get_width(Ncentral,self.lat)
+        rect_L_plus_W = min_width + self.lx
+        offset =self.ly
+        
+        def _shape_from_lines(pos,lineCoeff1,lineCoeff2,offset=offset):
+                x,y = pos
+                val1 = np.polyval(lineCoeff1,abs(x-self.lx))
+                val2 = np.polyval(lineCoeff2,abs(x-self.lx))
+                if 0.0<=y+offset<self.ly and  0<=x<2*self.lx:
+                    if val1<=y<=val2: 
+                        return True 
+                    else: 
+                        return False
+                else: 
+                        return False
+                
+        while offset > self.ly-self.lat.prim_vecs[1][1]: 
+            ypt11,ypt12 = self._get_random_2pts(rect_L_plus_W,min_width)
+            ypt11,ypt12 = min(ypt11,ypt12),max(ypt11,ypt12)
+            PTS1 = []
+            for pt in [ypt11,ypt12]: 
+                if pt > self.ly:
+                    PTS1.append([pt-self.ly,self.ly])
+                else: 
+                    PTS1.append([0,pt])
+                
+                ypt21,ypt22 = self._get_random_2pts(self.ly,min_width)
+                ypt21,ypt22 = min(ypt21,ypt22),max(ypt21,ypt22)
+                PTS2= [[self.lx,ypt21],[self.lx,ypt22]]
+        
+        
+            lineCoeff1 =  np.polyfit([PTS1[0][0],PTS2[0][0]],
+                                     [PTS1[0][1],PTS2[0][1]],1)
+        
+            lineCoeff2 =  np.polyfit([PTS1[1][0],PTS2[1][0]],
+                                     [PTS1[1][1],PTS2[1][1]],1)
+            offset = (lineCoeff1[1]+lineCoeff2[1])/2
+            lineCoeff1[1] -= offset 
+            lineCoeff2[1] -= offset
+        
+        syst = kwant.Builder(kwant.TranslationalSymmetry([2*self.lx,0]))
+        syst[self.lat.shape((lambda pos: _shape_from_lines(pos,
+                                              lineCoeff1=lineCoeff1, 
+                                              lineCoeff2=lineCoeff2,
+                                              offset=offset)),(0.0,0))]=0 
+        syst[self.lat.neighbors()]=-1
+        #syst = finite_to_1D(syst,self.lx)
+        #syst.eradicate_dangling()
+        return syst
             
             
         
