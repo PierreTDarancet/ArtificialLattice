@@ -16,15 +16,13 @@
 
 This module contains 
 """
-
-import sys
+from helper import get_width
 import cmath
 import numpy as np
-from math import cos, sin, pi
-from kwant import system
+import z2pack
 
 
-def zak_bands(sys, args=(), momenta=65, file=None, *, params=None,dim=3):
+def get_Hk(sys, args=(), momenta=65, file=None, *, params=None,dim=3):
     """Plot band structure of a translationally invariant 1D system.
 
     Parameters
@@ -70,7 +68,7 @@ def zak_bands(sys, args=(), momenta=65, file=None, *, params=None,dim=3):
 
     def h_k(k):
         # H_k = H_0 + V e^-ik + V^\dagger e^ik
-        mat = hop * cmath.exp(-1j * np.array(2*np.pi*k))
+        mat = hop * cmath.exp(-1j * np.array(2*np.pi*k[0]))
         mat +=  mat.conjugate().transpose() + ham
         return mat
 
@@ -78,3 +76,16 @@ def zak_bands(sys, args=(), momenta=65, file=None, *, params=None,dim=3):
     #                fig_size=fig_size, ax=ax)
     return h_k
 
+
+def calc_pol(syst,red_pos):   
+    
+    Hk = get_Hk(syst,dim=2)
+    z2_system = z2pack.hm.System(Hk,dim=2,#pos=red_pos,
+                                 convention=2)
+    result = z2pack.line.run(system=z2_system, 
+                              line=lambda t1: [t1,0],
+                              pos_tol=1e-2,iterator=range(3,501,2));
+    return result.pol
+    
+    
+    
