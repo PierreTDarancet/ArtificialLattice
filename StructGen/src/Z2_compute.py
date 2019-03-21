@@ -80,11 +80,11 @@ def get_Hk(sys, args=(), momenta=65, file=None, *, params=None,dim=3):
 def calc_pol(syst,red_pos):   
     
     Hk = get_Hk(syst,dim=2)
-    z2_system = z2pack.hm.System(Hk,dim=2,#pos=red_pos,
-                                 convention=2)
+    z2_system = z2pack.hm.System(Hk,dim=2,pos=red_pos,
+                                 convention=1)
     result = z2pack.line.run(system=z2_system, 
                               line=lambda t1: [t1,0],
-                              pos_tol=1e-2,iterator=range(3,501,2));
+                              pos_tol=1e-3,iterator=range(3,501,2));
     return result.pol
     
     
