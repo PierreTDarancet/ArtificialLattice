@@ -34,7 +34,8 @@ def get_Hk(sys, args=(), momenta=65, file=None, *, params=None,dim=3):
         The output file.  If `None`, output will be shown instead.
     params : dict, optional
         Dictionary of parameter names and their values. Mutually exclusive
-        with 'args'.
+        w
+        ith 'args'.
     dim: int , optional
         Dimension of the system
         Default = 3 
@@ -88,7 +89,7 @@ def calc_pol(syst,red_pos):
                                  convention=2)
     result = z2pack.line.run(system=z2_system, 
                               line=lambda t1: [t1,0],
-                              pos_tol=1e-2,iterator=range(3,501,2));
+                              pos_tol=1e-2,iterator=range(7,501,2));
     return result.pol
 
 
@@ -227,15 +228,28 @@ class StructGen():
             syst = kwant.Builder(kwant.TranslationalSymmetry([self.lx,0]))
             syst[self.lat.shape((lambda pos: _shape_from_lines(pos,offset,
                                               lineCoeff1=lineCoeff1, 
-                                              lineCoeff2=lineCoeff2)),(0.0,0))]=0 
-            syst[self.lat.neighbors()]=-1
+                                              lineCoeff2=lineCoeff2)),(0.0,0))]=self.onsite 
+            syst[self.lat.neighbors()]=self.hop
             syst.eradicate_dangling()
             self.syst = syst
         
     def get_syst(self): 
+        """
+        Returns the kwant.Builder instance corresponding to the current state 
+        of the random structure generator
+        """ 
         return self.syst
     
-    def syst2poscar(self,filename='POSCAR'): 
+    def syst2poscar(self,filename='POSCAR'):
+        """
+        Saves the current state of the random structure generator as a POSCAR file
+        
+        Parameters:
+        ----------
+        
+        filename: str
+                Path to the POSCAR file
+        """
         l = Lattice.from_lengths_and_angles([self.lx,self.ly,5.0],[90,90,90])
         pos = [site.pos for site in list(self.syst.sites())]
         nsites = len(pos)
@@ -244,7 +258,43 @@ class StructGen():
         structure = Structure(l,['C']*nsites,pos,coords_are_cartesian=True)
         structure.to(fmt='poscar',filename=filename)
         
+    def poscar2syst(self,POSCAR): 
+        struct = Structure.from_file(POSCAR)
+        poscar_pos = np.array([[item.coords[0],item.coords[1]] for item in struct])
+        self.lx = struct.lattice.a 
+        self.ly = struct.lattice.b 
+        syst = kwant.Builder(kwant.TranslationalSymmetry([self.lx,0]))
+        def check_sites(pos):
+            x,y = pos 
+            for test_site in poscar_pos: 
+                diff_x = abs(test_site[0]-x)
+                diff_y = abs(test_site[1]-y)
+                if diff_x < 1.0e-3 and diff_y < 1.0e-3 :
+                    return True 
+            return False
+            
+            
+        syst[self.lat.shape(check_sites,(0,0))]=self.onsite
+        syst[self.lat.neighbors()]=self.hop 
+        syst.eradicate_dangling() 
+        self.syst = syst 
+        return syst 
+        
+        
+        
     def get_pol(self):
+        """
+        Returns the polarization of the geometry corresponding to the curent 
+        state of the random structure generator
+        
+        Returns: 
+        -------
+        
+        pol: float 
+            Polarization. Quantized at 0 or 0.5 if the system has spatial 
+            symmetries
+        
+        """
         a = self.lx
         b = self.ly
         #for site in list(self.syst.sites(): 
