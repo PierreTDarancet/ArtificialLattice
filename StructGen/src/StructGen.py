@@ -259,6 +259,20 @@ class StructGen():
         structure.to(fmt='poscar',filename=filename)
         
     def poscar2syst(self,POSCAR): 
+        """
+        Reads a POSCAR file and generates a kwant system with the same geometery. 
+        The onsite and hopping are those of the generator
+        
+        Parameters:
+        ---------- 
+        
+        POSCAR: str 
+                path to POSCAR file 
+        
+        Returns: 
+        ---------
+            kwant.Builder() instance
+        """
         struct = Structure.from_file(POSCAR)
         poscar_pos = np.array([[item.coords[0],item.coords[1]] for item in struct])
         self.lx = struct.lattice.a 
@@ -280,7 +294,35 @@ class StructGen():
         self.syst = syst 
         return syst 
         
+    def translate_cell(self,t=None):  
+        """Translates the x-coordinate of the sites by "t". 
+        Can also be thought of as shifting/sliding the unit cell boundary over a fixed lattice
         
+        Parameters:
+        -----------
+        t = float 
+            offset, default = lx/2.0 
+        
+        Returns: 
+        ---------- 
+            kwant.Builder() instance
+        """
+        if t is None: 
+            t = self.lx/2.0 
+        pos = np.array([site.pos for site in list(self.syst.sites())])
+        pos[:,0] += t
+        for p in pos: 
+            if p[0] >= self.lx: 
+                p[0] -= self.lx
+            elif p[0] <=0: 
+                p[0] += self.lx 
+        self.lat = kwant.lattice.Polyatomic([[self.lx,0],[0,self.ly]],pos)
+        syst = kwant.Builder(kwant.TranslationalSymmetry([self.lx,0]))
+        syst[self.lat.shape((lambda pos: pos[1]>=0 and pos[1]<=self.ly),
+                            (0,0))] = self.onsite
+        syst[self.lat.neighbors()]=self.hop
+        self.syst = syst 
+        return syst 
         
     def get_pol(self):
         """
