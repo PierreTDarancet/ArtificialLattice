@@ -9,6 +9,7 @@ Created on Mon Mar 18 16:27:19 2019
 #from helper import *
 from helper import Armchair,get_width
 from pymatgen import Lattice, Structure
+from mpi4py import MPI
 import kwant
 import random 
 import numpy as np 
@@ -239,6 +240,22 @@ class StructGen():
         of the random structure generator
         """ 
         return self.syst
+    
+    def set_syst(self,syst): 
+        """
+        Sets the current state of the random structure generator to the system 
+        given 
+        
+        Parameters: 
+        ---------- 
+        
+        syst: kwant.Builder instance
+        
+        Returns: 
+        ---------
+            None 
+        """
+        self.syst=syst
     
     def syst2poscar(self,filename='POSCAR'):
         """
