@@ -196,7 +196,7 @@ class StructGen():
                         return True 
                     else: 
                         return False
-                
+        ntrial=0 
         while CR.is_redundant(self.syst):
             ypt11,ypt12 = self._get_random_2pts(self.ly,min_width)
             ypt11,ypt12 = min(ypt11,ypt12),max(ypt11,ypt12)
@@ -233,6 +233,11 @@ class StructGen():
             syst[self.lat.neighbors()]=self.hop
             syst.eradicate_dangling()
             self.syst = syst
+            ntrial +=1 
+            if ntrial > 10000: 
+                return False 
+        
+        return True 
         
     def get_syst(self): 
         """
@@ -274,7 +279,7 @@ class StructGen():
         pos = np.column_stack((pos,z)) 
         structure = Structure(l,['C']*nsites,pos,coords_are_cartesian=True)
         structure.to(fmt='poscar',filename=filename)
-        
+
     def poscar2syst(self,POSCAR): 
         """
         Reads a POSCAR file and generates a kwant system with the same geometery. 
@@ -292,6 +297,10 @@ class StructGen():
         """
         struct = Structure.from_file(POSCAR)
         poscar_pos = np.array([[item.coords[0],item.coords[1]] for item in struct])
+        min_x = np.min(poscar_pos[:,0])
+        edge_sites = poscar_pos[poscar_pos[:,0]==min_x]
+        min_y = np.min(edge_sites[:,1])
+        poscar_pos[:,1] -= min_y
         self.lx = struct.lattice.a 
         self.ly = struct.lattice.b 
         syst = kwant.Builder(kwant.TranslationalSymmetry([self.lx,0]))
