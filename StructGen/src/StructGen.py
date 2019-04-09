@@ -374,4 +374,12 @@ class StructGen():
         red_pos[:,1] = act_pos[:,1]/b
         return calc_pol(finalized_syst,red_pos);
     
+    def plot_syst(self): 
+        kwant.plot(self.syst)
+    
+    def get_adjacency(self): 
+        
+        sites = list(self.syst.sites())
+        print(sites)
+    
         
