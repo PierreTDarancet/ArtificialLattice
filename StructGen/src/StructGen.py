@@ -9,11 +9,10 @@ Created on Mon Mar 18 16:27:19 2019
 #from helper import *
 from helper import Armchair,get_width
 from pymatgen import Lattice, Structure
-import kwant
-import random,operator 
+from math import floor
+import kwant,z2pack
+import cmath,random,operator 
 import numpy as np 
-import cmath
-import z2pack
 
 
 def get_Hk(sys, args=(), momenta=65, file=None, *, params=None,dim=3):
@@ -170,11 +169,12 @@ class StructGen():
     def _index_sites(self): 
         full_syst = kwant.Builder()
         full_syst[self.lat.shape(
-                (lambda pos: 0<=pos[0]<=self.lx and 0<=pos[1]<=self.ly),
+                (lambda pos: 0<=pos[0]<=self.lx and -1*self.ly<=pos[1]<=self.ly),
                 (0,0))] = self.onsite 
         full_syst[self.lat.neighbors()] = self.hop
         pos = self._get_site_pos(syst=full_syst)
         pos.sort(key=operator.itemgetter(0,1))
+        pos = np.array(pos)
         index_dict = {}
         for i,site in enumerate(pos): 
             index_dict[tuple(site)] =i 
@@ -202,7 +202,7 @@ class StructGen():
     def random_mirror_symmetric(self,symmetry=['mirror'],Ncentral=7): 
                
         min_width = get_width(Ncentral,self.lat)
-        rect_L_plus_W = min_width + self.lx/2.0
+        rect_L_plus_W = self.lx/4.0 + self.ly
         self.syst = None 
         
         def _shape_from_lines(pos,offset,lineCoeff1,lineCoeff2):
@@ -252,7 +252,7 @@ class StructGen():
             syst = kwant.Builder(kwant.TranslationalSymmetry([self.lx,0]))
             syst[self.lat.shape((lambda pos: _shape_from_lines(pos,offset,
                                               lineCoeff1=lineCoeff1, 
-                                              lineCoeff2=lineCoeff2)),(0.0,0))]=self.onsite 
+                                              lineCoeff2=lineCoeff2)),(0,0))]=self.onsite 
             syst[self.lat.neighbors()]=self.hop
             syst.eradicate_dangling()
             self.syst = syst
@@ -402,29 +402,47 @@ class StructGen():
     
 
     def get_adjacency(self): 
+        """ 
+        Returns the Adjacency Matrix.
+        The adjacency matrix is built from the hopping pairs of the kwant system 
+        so it is symmetric. 
+   
         
-        sites = list(self.syst.sites())
+        Returns: 
+        ------- 
+        adjMat: numpy array 
+                Symmetric Adjacency matrix 
+
+        """ 
         nmax_sites = len(self.full_syst_pos)
-        adjMat = np.zeros((nmax_sites,nmax_sites))
-        conMat = np.zeros((nmax_sites,nmax_sites))
-        pos = np.array(self._get_site_pos())
-        y_min = np.min(pos[:,1])
-        pos[:,1]-=y_min
-        def get_index(site): 
-            diff = abs(self.full_syst_pos[:,0]-site[0]) + abs(self.full_syst_pos[:,1]-site[1])
-            if np.any(diff<1.e-4): 
-                index = np.where(diff<1.e-4)[0][0]
-                return index 
+        adjMat = np.zeros((nmax_sites,nmax_sites))   
+        
+        def _get_index(site):
+            x,y = site 
+            x -= floor(x/self.lx)*self.lx
+            for i,item in enumerate(self.full_syst_pos):
+                diff = abs(item[0]-x) + abs(item[1]-y)
+                if diff < 1.e-2:
+                    return i
+            return None 
+
+        def _is_inside_cell(site1,site2): 
+            x1,y1 = site1.pos 
+            x2,y2 = site2.pos 
+            if 0<=x1<=self.lx and 0<=x2<=self.lx: 
+                return True 
             else: 
-                return None 
+                return False
 
         for hopping, value in self.syst.hopping_value_pairs(): 
-            site1,site2=hopping 
-            index_i = get_index(site1.pos)
-            index_j = get_index(site2.pos)
-            adjMat[index_i,index_j]=1
-            if site1.pos[0] < site2.pos[0]: 
-                adjMat
+            site1,site2=hopping
+            index_i = _get_index(site1.pos)
+            index_j = _get_index(site2.pos)
+            if _is_inside_cell(site1,site2):
+                adjMat[index_i,index_j]=1
+            else: 
+                adjMat[index_i,index_j]=-1      
+        return adjMat
                 
             
                 
