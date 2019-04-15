@@ -502,13 +502,25 @@ class StructGen():
                 edge_color.append('red')
         nx.draw_networkx(self.graph,pos=pos,edge_color=edge_color)
     
-#    def find_edge_connections(self): 
-#        
-#    
-#    
-#    def find_paths_across_cell(self): 
-#        edge_connections = [] 
-#        
+    def _find_edge_connections(self):
+        edge_connections = []
+        for edge in self.graph.edges(data=True):
+            if edge[-1]['hop'] < 0: 
+                edge_connections.append([edge[0],edge[1]])
+        return edge_connections
+    
+    def find_paths_across_cell(self): 
+        edge_connections = self._find_edge_connections()
+        paths = []
+        for connection in edge_connections:
+            short_paths = []
+            for p in nx.shortest_simple_paths(self.graph,connection[0],connection[1]): 
+                short_paths.append(p) 
+                paths.append(short_paths)
+        return paths
+        
+        
+        
     
                         
             
