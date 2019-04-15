@@ -9,9 +9,8 @@ Created on Mon Mar 18 16:27:19 2019
 #from helper import *
 from helper import Armchair,get_width
 from pymatgen import Lattice, Structure
-from mpi4py import MPI
 import kwant
-import random 
+import random,operator 
 import numpy as np 
 import cmath
 import z2pack
@@ -158,6 +157,30 @@ class StructGen():
         self.onsite = onsite
         self.hop = hop
         self.syst = syst
+        self.full_syst_pos,self.index_dict = self._index_sites()
+        
+    def _get_site_pos(self,syst=None):
+        if syst is None:
+            pos = np.array([site.pos for site in list(self.syst.sites())]).tolist()
+            return pos
+        else: 
+            pos = np.array([site.pos for site in list(syst.sites())]).tolist()
+            return pos
+        
+    def _index_sites(self): 
+        full_syst = kwant.Builder()
+        full_syst[self.lat.shape(
+                (lambda pos: 0<=pos[0]<=self.lx and 0<=pos[1]<=self.ly),
+                (0,0))] = self.onsite 
+        full_syst[self.lat.neighbors()] = self.hop
+        pos = self._get_site_pos(syst=full_syst)
+        pos.sort(key=operator.itemgetter(0,1))
+        index_dict = {}
+        for i,site in enumerate(pos): 
+            index_dict[tuple(site)] =i 
+        del full_syst 
+        return pos,index_dict
+        
         
     def _get_random_2pts(self,L,w): 
         """ Used internally for randomly choosing 2pts so 
@@ -273,7 +296,7 @@ class StructGen():
                 Path to the POSCAR file
         """
         l = Lattice.from_lengths_and_angles([self.lx,self.ly,5.0],[90,90,90])
-        pos = [site.pos for site in list(self.syst.sites())]
+        pos = self._get_site_pos()
         nsites = len(pos)
         z = np.zeros(nsites)
         pos = np.column_stack((pos,z)) 
@@ -335,7 +358,7 @@ class StructGen():
         """
         if t is None: 
             t = self.lx/2.0 
-        pos = np.array([site.pos for site in list(self.syst.sites())])
+        pos = np.array(self._get_site_pos())
         pos[:,0] += t
         for p in pos: 
             if p[0] >= self.lx: 
@@ -377,9 +400,34 @@ class StructGen():
     def plot_syst(self): 
         kwant.plot(self.syst)
     
+
     def get_adjacency(self): 
         
         sites = list(self.syst.sites())
-        print(sites)
+        nmax_sites = len(self.full_syst_pos)
+        adjMat = np.zeros((nmax_sites,nmax_sites))
+        conMat = np.zeros((nmax_sites,nmax_sites))
+        pos = np.array(self._get_site_pos())
+        y_min = np.min(pos[:,1])
+        pos[:,1]-=y_min
+        def get_index(site): 
+            diff = abs(self.full_syst_pos[:,0]-site[0]) + abs(self.full_syst_pos[:,1]-site[1])
+            if np.any(diff<1.e-4): 
+                index = np.where(diff<1.e-4)[0][0]
+                return index 
+            else: 
+                return None 
+
+        for hopping, value in self.syst.hopping_value_pairs(): 
+            site1,site2=hopping 
+            index_i = get_index(site1.pos)
+            index_j = get_index(site2.pos)
+            adjMat[index_i,index_j]=1
+            if site1.pos[0] < site2.pos[0]: 
+                adjMat
+                
+            
+                
+        
     
         
