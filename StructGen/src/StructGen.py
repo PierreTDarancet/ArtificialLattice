@@ -13,7 +13,7 @@ from math import floor
 import kwant,z2pack
 import cmath,random,operator 
 import numpy as np 
-
+import networkx as nx 
 
 def get_Hk(sys, args=(), momenta=65, file=None, *, params=None,dim=3):
     """Returns hamiltonian as a function of k. Modified from kwant's 
@@ -157,6 +157,7 @@ class StructGen():
         self.hop = hop
         self.syst = syst
         self.full_syst_pos,self.index_dict = self._index_sites()
+        self.graph = None 
         
     def _get_site_pos(self,syst=None):
         if syst is None:
@@ -443,7 +444,73 @@ class StructGen():
             else: 
                 adjMat[index_i,index_j]=-1      
         return adjMat
-                
+
+    def construct_graph(self,draw=False): 
+        """
+        Construct a directed graph from the kwant system. The direction of the 
+        graph is from left to right (increasing x). 
+        
+        Parameters: 
+        -----------
+        draw: boolean 
+            If true, outputs visualization of the graph 
+        
+        Returns: 
+        --------
+        G : nx.DiGraph instance 
+            Graph of the kwant system
+        """
+        
+        G = nx.DiGraph()
+        adjMat = self.get_adjacency() 
+        I,J = np.nonzero(adjMat)
+        for i,j in zip(I,J):
+            if adjMat[i,j] > 0: 
+                hop=1
+            else: 
+                hop=-1
+                print("inter cell")
+            x1,y1 = self.full_syst_pos[i]
+            x2,y2 = self.full_syst_pos[j] 
+            G.add_node(i,pos=[x1,y1])
+            G.add_node(j,pos=[x2,y2])
+            if x1 < x2: 
+                G.add_edge(i,j,hop=hop)
+            else: 
+                G.add_edge(j,i,hop=hop)
+        self.graph = G
+        if draw: 
+            self.draw_lattice_graph()
+        return G 
+
+    def draw_lattice_graph(self): 
+        """
+        Draws the kwant system accroding to the position of the sites
+        
+        Returns: 
+        -------
+        None 
+        """
+        pos = {}        
+        for node in self.graph.nodes(data=True):
+            pos[node[0]] = node[-1]['pos']
+        edge_color=[]
+        for edge in self.graph.edges(data=True): 
+            if edge[-1]['hop'] > 0: 
+                edge_color.append('black')
+            elif edge[-1]['hop'] < 0: 
+                edge_color.append('red')
+        nx.draw_networkx(self.graph,pos=pos,edge_color=edge_color)
+    
+#    def find_edge_connections(self): 
+#        
+#    
+#    
+#    def find_paths_across_cell(self): 
+#        edge_connections = [] 
+#        
+    
+                        
             
                 
         
