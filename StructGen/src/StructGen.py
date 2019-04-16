@@ -469,7 +469,6 @@ class StructGen():
                 hop=1
             else: 
                 hop=-1
-                print("inter cell")
             x1,y1 = self.full_syst_pos[i]
             x2,y2 = self.full_syst_pos[j] 
             G.add_node(i,pos=[x1,y1])
@@ -509,14 +508,16 @@ class StructGen():
                 edge_connections.append([edge[0],edge[1]])
         return edge_connections
     
-    def find_paths_across_cell(self): 
+    def find_paths_across_cell(self):
+        if self.graph is None: 
+            self.construct_graph()
         edge_connections = self._find_edge_connections()
         paths = []
         for connection in edge_connections:
             short_paths = []
             for p in nx.shortest_simple_paths(self.graph,connection[0],connection[1]): 
                 short_paths.append(p) 
-                paths.append(short_paths)
+            paths.append(short_paths)
         return paths
         
         
