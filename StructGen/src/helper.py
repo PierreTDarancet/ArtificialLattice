@@ -295,3 +295,5 @@ def terminate_edges(syst,delta_t, num_bulk_neigh=3):
         site_seen.append(edge_site.tag)
     return syst
 
+
+

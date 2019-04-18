@@ -8,6 +8,7 @@ Created on Mon Mar 18 16:27:19 2019
 
 #from helper import *
 from helper import Armchair,get_width
+from pymatgen.io.lammps.data import LammpsData 
 from pymatgen import Lattice, Structure
 from math import floor
 import kwant,z2pack
@@ -174,6 +175,51 @@ class StructGen():
                 (0,0))] = self.onsite 
         full_syst[self.lat.neighbors()] = self.hop
         return full_syst
+    
+    def fill_all_sites(self): 
+        full_syst=self._make_full_syst() 
+        self.syst = full_syst
+        
+    def from_lmpdata(self,data):
+
+
+        lmpdata = LammpsData.from_file(data)
+        struct = lmpdata.structure
+        topo = lmpdata.topology
+        atoms = lmpdata.atoms
+        bonds = topo['Bonds']
+        nbonds = len(bonds)
+        [a,b,c] = struct.lattice._matrix
+        vec1 = [a[0],a[1]]
+        vec2 = [b[0]*2,b[1]*2]
+        pos = []
+        
+        for i in range(1,len(atoms)+1): 
+            x = atoms.loc[i,'x']
+            y = atoms.loc[i,'y']
+            pos.append([x,y])
+        pos = np.array(pos)
+        max_y = np.max(pos[:,1])
+        lat = kwant.lattice.general([vec1,vec2],pos)
+        syst = kwant.Builder(kwant.TranslationalSymmetry(vec1))
+        syst[lat.shape((lambda pos: 0<=pos[1]<= max_y),(0,0))]=self.onsite
+        
+        for i in range(1,nbonds+1): 
+            at1 = atoms.loc[bonds.loc[i,'atom1']]
+            at2 = atoms.loc[bonds.loc[i,'atom2']]
+            x1,y1 = at1['x'],at1['y']
+            x2,y2 = at2['x'],at2['y']
+            site1 = syst.closest([x1,y1])
+            site2 = syst.closest([x2,y2])
+            syst[site1,site2] = self.hop
+        syst[lat.neighbors()] = self.hop
+        syst[lat.neighbors(2)] = self.hop
+        syst[lat.neighbors(3)] = self.hop
+        self.syst = syst 
+        return syst 
+        #min_x = np.min(pos[:,0])
+        #max_x = np.min(pos[:,0])
+
         
     def _index_sites(self): 
         full_syst = self._make_full_syst()
