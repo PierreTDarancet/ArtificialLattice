@@ -167,12 +167,16 @@ class StructGen():
             pos = np.array([site.pos for site in list(syst.sites())]).tolist()
             return pos
         
-    def _index_sites(self): 
+    def _make_full_syst(self): 
         full_syst = kwant.Builder()
         full_syst[self.lat.shape(
                 (lambda pos: 0<=pos[0]<=self.lx and -1*self.ly<=pos[1]<=self.ly),
                 (0,0))] = self.onsite 
         full_syst[self.lat.neighbors()] = self.hop
+        return full_syst
+        
+    def _index_sites(self): 
+        full_syst = self._make_full_syst()
         pos = self._get_site_pos(syst=full_syst)
         pos.sort(key=operator.itemgetter(0,1))
         pos = np.array(pos)
@@ -330,11 +334,12 @@ class StructGen():
         syst = kwant.Builder(kwant.TranslationalSymmetry([self.lx,0]))
         def check_sites(pos):
             x,y = pos 
-            for test_site in poscar_pos: 
-                diff_x = abs(test_site[0]-x)
-                diff_y = abs(test_site[1]-y)
-                if diff_x < 1.0e-3 and diff_y < 1.0e-3 :
-                    return True 
+            if 0<=x<=self.lx and 0<=y<=self.ly:
+                for test_site in poscar_pos: 
+                    diff_x = abs(test_site[0]-x)
+                    diff_y = abs(test_site[1]-y)
+                    if diff_x < 1.0e-3 and diff_y < 1.0e-3 :
+                        return True 
             return False
             
             
@@ -509,15 +514,26 @@ class StructGen():
         return edge_connections
     
     def find_paths_across_cell(self):
+        """
+        Find the shortest simple paths from the left end of the unit cell to 
+        the right end for each bond crossing the unit cell 
+        
+        Retruns: 
+        -------
+        paths: dict 
+                key: index of head, index of tail 
+                values: paths 
+        """
         if self.graph is None: 
-            self.construct_graph()
+            G=self.construct_graph()
         edge_connections = self._find_edge_connections()
-        paths = []
+        print(edge_connections)
+        paths = {}
         for connection in edge_connections:
             short_paths = []
             for p in nx.shortest_simple_paths(self.graph,connection[0],connection[1]): 
                 short_paths.append(p) 
-            paths.append(short_paths)
+            paths[connection[0],connection[1]]=short_paths
         return paths
         
         
