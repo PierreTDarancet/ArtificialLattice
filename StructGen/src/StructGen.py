@@ -157,7 +157,11 @@ class StructGen():
         self.onsite = onsite
         self.hop = hop
         self.syst = syst
-        self.full_syst_pos,self.index_dict = self._index_sites()
+        self.full_syst_pos = None 
+        self.index_dict = None 
+        self.full_graph = None
+        self.full_syst = None 
+        self._set_full_syst_attributes()
         self.graph = None 
         
     def _get_site_pos(self,syst=None):
@@ -224,18 +228,31 @@ class StructGen():
         return syst 
         #min_x = np.min(pos[:,0])
         #max_x = np.min(pos[:,0])
-
+    def _construct_full_graph(self,draw=False): 
+              
+        G = nx.Graph()
+        for hopping,value in self.syst.hopping_value_pairs():
+            u,v = hopping
+            G.add_node(u,pos=u.pos) 
+            G.add_node(v,pos=v.pos) 
+            G.add_edge(u,v)
+        return G 
         
-    def _index_sites(self): 
+    def _set_full_syst_attributes(self): 
         full_syst = self._make_full_syst()
         pos = self._get_site_pos(syst=full_syst)
         pos.sort(key=operator.itemgetter(0,1))
         pos = np.array(pos)
         index_dict = {}
         for i,site in enumerate(pos): 
-            index_dict[tuple(site)] =i 
+            index_dict[tuple(site)] =i
+        self.syst = full_syst
+        self.full_syst_pos = pos 
+        self.index_dict = index_dict
+        self.full_graph = self._construct_full_graph()
+        self.full_syst = full_syst
         del full_syst 
-        return pos,index_dict
+        self.syst = None 
         
         
     def _get_random_2pts(self,L,w): 
@@ -254,6 +271,9 @@ class StructGen():
             else: 
                 pt2 = random.uniform(pt1+w,L)
         return pt1,pt2
+    
+ #   def _swap_moves(self): 
+         
     
     def random_mirror_symmetric(self,symmetry=['mirror'],Ncentral=7): 
                
