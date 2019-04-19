@@ -193,6 +193,8 @@ class StructGen():
         vec1 = [a[0],a[1]]
         vec2 = [b[0]*2,b[1]*2]
         pos = []
+
+        
         
         for i in range(1,len(atoms)+1): 
             x = atoms.loc[i,'x']
@@ -203,6 +205,9 @@ class StructGen():
         lat = kwant.lattice.general([vec1,vec2],pos)
         syst = kwant.Builder(kwant.TranslationalSymmetry(vec1))
         syst[lat.shape((lambda pos: 0<=pos[1]<= max_y),(0,0))]=self.onsite
+        self.lat = lat
+        self.lx = a[0]
+        self.ly = max_y+0.5
         
         for i in range(1,nbonds+1): 
             at1 = atoms.loc[bonds.loc[i,'atom1']]
@@ -441,7 +446,7 @@ class StructGen():
         a = self.lx
         b = self.ly
         #for site in list(self.syst.sites(): 
-        act_pos = np.array([site.pos for site in list(self.syst.sites()) \
+        act_pos = np.array([site.pos for site in list(self.syst.sites())
                             if 0 <=site.pos[0]<=a])
         finalized_syst = self.syst.finalized()
         red_pos = np.zeros(np.shape(act_pos))
