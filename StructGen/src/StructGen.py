@@ -405,20 +405,19 @@ class StructGen():
         syst = kwant.Builder(kwant.TranslationalSymmetry([self.lx,0]))
         def check_sites(pos):
             x,y = pos 
-            if 0<=x<=self.lx and 0<=y<=self.ly:
-                for test_site in poscar_pos: 
-                    diff_x = abs(test_site[0]-x)
-                    diff_y = abs(test_site[1]-y)
-                    if diff_x < 1.0e-3 and diff_y < 1.0e-3 :
-                        return True 
+            for test_site in poscar_pos: 
+                diff_x = abs(test_site[0]-x)
+                diff_y = abs(test_site[1]-y)
+                if diff_x < 1.0e-3 and diff_y < 1.0e-3 :
+                    return True 
             return False
-            
             
         syst[self.lat.shape(check_sites,(0,0))]=self.onsite
         syst[self.lat.neighbors()]=self.hop 
         syst.eradicate_dangling() 
         self.syst = syst 
         return syst 
+    
         
     def translate_cell(self,t=None):  
         """Translates the x-coordinate of the sites by "t". 
@@ -444,8 +443,13 @@ class StructGen():
                 p[0] += self.lx 
         self.lat = kwant.lattice.Polyatomic([[self.lx,0],[0,self.ly]],pos)
         syst = kwant.Builder(kwant.TranslationalSymmetry([self.lx,0]))
-        syst[self.lat.shape((lambda pos: pos[1]>=0 and pos[1]<=self.ly),
-                            (0,0))] = self.onsite
+        def _shape(site): 
+            x,y = site
+            if y in pos[:,1]: 
+                return True 
+            else: 
+                return False
+        syst[self.lat.shape(_shape,(0,0))] = self.onsite
         syst[self.lat.neighbors()]=self.hop
         self.syst = syst 
         return syst 
