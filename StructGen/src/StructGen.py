@@ -180,9 +180,10 @@ class StructGen():
         full_syst[self.lat.neighbors()] = self.hop
         return full_syst
     
-    def _reset_cell_vectors(self,lx,ly): 
+    def set_cell_attributes(self,lx=5,ly=5,lat=Armchair): 
         self.lx = lx 
         self.ly = ly 
+        self.lat = lat
         self._set_full_syst_attributes() 
     
     def fill_all_sites(self): 
@@ -387,7 +388,9 @@ class StructGen():
     def poscar2syst(self,POSCAR): 
         """
         Reads a POSCAR file and generates a kwant system with the same geometery. 
-        The onsite and hopping are those of the generator
+        The onsite and hopping are those of the generator. lx, ly and lattice 
+        of the generator must match that of the poscar files. Use 
+        set_cell_attributes() to set lx,ly and lattice.  
         
         Parameters:
         ---------- 
@@ -405,9 +408,6 @@ class StructGen():
         edge_sites = poscar_pos[poscar_pos[:,0]==min_x]
         min_y = np.min(edge_sites[:,1])
         poscar_pos[:,1] -= min_y
-        lx = round(struct.lattice.a/self.lat.prim_vecs[0][0]) 
-        ly = round(struct.lattice.b/self.lat.prim_vecs[1][1]) 
-        self._reset_cell_vectors(lx,ly)
         syst = kwant.Builder(kwant.TranslationalSymmetry([self.lx,0]))
         def check_sites(pos):
             x,y = pos 
@@ -421,8 +421,8 @@ class StructGen():
         syst[self.lat.shape(check_sites,(0,0))]=self.onsite
         syst[self.lat.neighbors()]=self.hop 
         syst.eradicate_dangling() 
-        self.syst = syst 
-        return syst 
+        self.syst = syst
+        return self.syst 
     
         
     def translate_cell(self,t=None):  
@@ -447,18 +447,26 @@ class StructGen():
                 p[0] -= self.lx
             elif p[0] <=0: 
                 p[0] += self.lx 
-        self.lat = kwant.lattice.Polyatomic([[self.lx,0],[0,self.ly]],pos)
+        min_x = np.min(pos[:,0])
+        edge_sites = pos[pos[:,0]==min_x]
+        min_y = np.min(edge_sites[:,1])
+        pos[:,1] -= min_y
+        np.savetxt('pos.dat',pos)
         syst = kwant.Builder(kwant.TranslationalSymmetry([self.lx,0]))
+        
         def _shape(site): 
             x,y = site
-            if y in pos[:,1]: 
-                return True 
-            else: 
-                return False
+            for test_site in pos: 
+                diff_x = abs(test_site[0]-x)
+                diff_y = abs(test_site[1]-y)
+                if diff_x < 1.0e-3 and diff_y < 1.0e-3 :
+                    return True 
+            return False
+
         syst[self.lat.shape(_shape,(0,0))] = self.onsite
         syst[self.lat.neighbors()]=self.hop
         self.syst = syst 
-        return syst 
+        return self.syst 
         
     def get_pol(self):
         """
