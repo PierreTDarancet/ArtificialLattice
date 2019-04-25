@@ -180,6 +180,11 @@ class StructGen():
         full_syst[self.lat.neighbors()] = self.hop
         return full_syst
     
+    def _reset_cell_vectors(self,lx,ly): 
+        self.lx = lx 
+        self.ly = ly 
+        self._set_full_syst_attributes() 
+    
     def fill_all_sites(self): 
         full_syst=self._make_full_syst() 
         self.syst = full_syst
@@ -400,8 +405,9 @@ class StructGen():
         edge_sites = poscar_pos[poscar_pos[:,0]==min_x]
         min_y = np.min(edge_sites[:,1])
         poscar_pos[:,1] -= min_y
-        self.lx = struct.lattice.a 
-        self.ly = struct.lattice.b 
+        lx = round(struct.lattice.a/self.lat.prim_vecs[0][0]) 
+        ly = round(struct.lattice.b/self.lat.prim_vecs[1][1]) 
+        self._reset_cell_vectors(lx,ly)
         syst = kwant.Builder(kwant.TranslationalSymmetry([self.lx,0]))
         def check_sites(pos):
             x,y = pos 
@@ -602,11 +608,11 @@ class StructGen():
         if self.graph is None: 
             G=self.construct_graph()
         edge_connections = self._find_edge_connections()
-        print(edge_connections)
+        #print(edge_connections)
         paths = {}
         for connection in edge_connections:
             short_paths = []
-            for p in nx.shortest_simple_paths(self.graph,connection[0],connection[1]): 
+            for p in nx.shortest_simple_paths(self.graph,connection[0],connection[1]):
                 short_paths.append(p) 
             paths[connection[0],connection[1]]=short_paths
         return paths
