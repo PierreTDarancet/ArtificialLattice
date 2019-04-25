@@ -15,6 +15,7 @@ import kwant,z2pack
 import cmath,random,operator 
 import numpy as np 
 import networkx as nx 
+import itertools
 
 def get_Hk(sys, args=(), momenta=65, file=None, *, params=None,dim=3):
     """Returns hamiltonian as a function of k. Modified from kwant's 
@@ -71,7 +72,7 @@ def get_Hk(sys, args=(), momenta=65, file=None, *, params=None,dim=3):
     return h_k
 
 
-def calc_pol(syst,red_pos):   
+def calc_pol(syst,red_pos,wcc=False ):   
     """ Returns the polarization of a unit cell built using kwant
     
     Parameters:
@@ -90,7 +91,10 @@ def calc_pol(syst,red_pos):
     result = z2pack.line.run(system=z2_system, 
                               line=lambda t1: [t1,0],
                               pos_tol=1e-2,iterator=range(7,501,2));
-    return result.pol
+    if wcc: 
+        return result.wcc, result.pol
+    else: 
+        return result.pol
 
 
 class Check_redundant(): 
@@ -244,6 +248,7 @@ class StructGen():
             G.add_edge(u,v)
         return G 
         
+        
     def _set_full_syst_attributes(self): 
         full_syst = self._make_full_syst()
         pos = self._get_site_pos(syst=full_syst)
@@ -278,7 +283,23 @@ class StructGen():
                 pt2 = random.uniform(pt1+w,L)
         return pt1,pt2
     
- #   def _swap_moves(self): 
+    def swap_move(self):
+        
+        #G_syst = self.construct_graph()
+        edge_sites = []
+        for site in self.syst.sites(): 
+            if self.syst.degree(site) < 3:
+                edge_sites.append(site)
+        
+        possible_head_tails = []
+        for (s,t) in itertools.combinations(edge_sites,2):
+            if nx.shortest_path_length(self.full_graph,s,t) <4:
+                possible_head_tails.append([s,t])
+        paths = {}
+        for s,t in possible_head_tails: 
+            paths[s,t] = nx.all_simple_paths(self.full_graph,s,t,cutoff=5)
+        return self.full_graph,possible_head_tails,paths
+        
          
     
     def random_mirror_symmetric(self,symmetry=['mirror'],Ncentral=7): 
