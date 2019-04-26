@@ -292,63 +292,65 @@ class StructGen():
         
         possible_head_tails = []
         for (s,t) in itertools.combinations(edge_sites,2):
-            if nx.shortest_path_length(self.full_graph,s,t) <4:
+            if nx.shortest_path_length(self.full_graph,s,t) <7:
                 possible_head_tails.append([s,t])
         
-        [s,t] = random.choice(possible_head_tails)
-
-        
-        def add_ring(paths): 
+        def _add_ring(paths): 
             path_not_exist = []
             for path in paths: 
-                if len(path) <6: 
+                if len(path) <7: 
                     site_exist_in_path = True 
                     for site in path: 
                         if site not in self.syst.sites(): 
                             site_exist_in_path = False 
                     if not site_exist_in_path: 
-                        path_not_exist.append(path) 
-            
-            add_path = random.choice(path_not_exist)
-            for site in add_path:
-                self.syst[site] = self.onsite 
-            self.syst[self.lat.neighbors()] = self.hop 
+                        path_not_exist.append(path)     
+            if not path_not_exist: 
+                return False
+            else: 
+                print("Adding rings")
+                add_path = random.choice(path_not_exist)
+                for site in add_path:
+                    self.syst[site] = self.onsite 
+                self.syst[self.lat.neighbors()] = self.hop
+                return True
         
-#        def remove_ring(paths): 
-#            path_exist = []
-#            for path in paths: 
-#                if len(path) <5: 
-#                    site_exist_in_path = True 
-#                    for site in path: 
-#                        if site not in self.syst.sites(): 
-#                            site_exist_in_path = False 
-#                    if site_exist_in_path:
-#                        path_exist.append(path)
-#            remove_path = random.choice(path_exist)
-#            for site in remove_path: 
-#                del self.syst[site]  
-#            self.syst.eradicate_dangling()
+        def _remove_ring(paths): 
+            path_exist = []
+            for path in paths: 
+                print(len(path))
+                if len(path) <7: 
+                    site_exist_in_path = True 
+                    for site in path: 
+                        if site not in self.syst.sites(): 
+                            site_exist_in_path = False 
+                    if site_exist_in_path:
+                        path_exist.append(path)      
+            if not path_exist: 
+                return False 
+            else: 
+                print("Removing rings")        
+                remove_path = random.choice(path_exist)
+                for site in remove_path: 
+                    del self.syst[site]  
+                self.syst.eradicate_dangling()
+                return True 
 
-#    
-        paths = nx.all_simple_paths(self.full_graph,s,t,cutoff=5)
-        #if random.uniform(0,1) < 0.5: 
-        print("Adding rings")
-        try:
-            add_ring(paths)
-        except: 
-            print(s.pos,t.pos)
-            print(self.full_graph.nodes[s],self.full_graph.nodes[t])
-        paths = nx.all_simple_paths(self.full_graph,s,t,cutoff=5)
-        for path in paths: 
-            print(len(path))
-        #else: 
-        #    print("Removing rings")
-        #    remove_ring(paths)
-
-#        #return paths
+        moved = False 
+        rand = random.uniform(0,1)
+        if rand < 0.5: 
+            move = _add_ring 
+        else: 
+            move = _remove_ring
+        while not moved:
+            [s,t] = random.choice(possible_head_tails)
+            paths = nx.all_simple_paths(self.full_graph,s,t,cutoff=5)          
+            moved = move(paths)
+            if moved == False:
+                print(s.pos,t.pos)
+                print(self.full_graph.nodes[s],self.full_graph.nodes[t])
         
          
-    
     def random_mirror_symmetric(self,symmetry=['mirror'],Ncentral=7): 
                
         min_width = get_width(Ncentral,self.lat)
