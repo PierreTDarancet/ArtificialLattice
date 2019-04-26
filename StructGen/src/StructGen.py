@@ -285,20 +285,67 @@ class StructGen():
     
     def swap_move(self):
         
-        #G_syst = self.construct_graph()
         edge_sites = []
         for site in self.syst.sites(): 
-            if self.syst.degree(site) < 3:
+            if self.syst.degree(site)<3:
                 edge_sites.append(site)
         
         possible_head_tails = []
         for (s,t) in itertools.combinations(edge_sites,2):
             if nx.shortest_path_length(self.full_graph,s,t) <4:
                 possible_head_tails.append([s,t])
-        paths = {}
-        for s,t in possible_head_tails: 
-            paths[s,t] = nx.all_simple_paths(self.full_graph,s,t,cutoff=5)
-        return self.full_graph,possible_head_tails,paths
+        
+        [s,t] = random.choice(possible_head_tails)
+
+        
+        def add_ring(paths): 
+            path_not_exist = []
+            for path in paths: 
+                if len(path) <6: 
+                    site_exist_in_path = True 
+                    for site in path: 
+                        if site not in self.syst.sites(): 
+                            site_exist_in_path = False 
+                    if not site_exist_in_path: 
+                        path_not_exist.append(path) 
+            
+            add_path = random.choice(path_not_exist)
+            for site in add_path:
+                self.syst[site] = self.onsite 
+            self.syst[self.lat.neighbors()] = self.hop 
+        
+#        def remove_ring(paths): 
+#            path_exist = []
+#            for path in paths: 
+#                if len(path) <5: 
+#                    site_exist_in_path = True 
+#                    for site in path: 
+#                        if site not in self.syst.sites(): 
+#                            site_exist_in_path = False 
+#                    if site_exist_in_path:
+#                        path_exist.append(path)
+#            remove_path = random.choice(path_exist)
+#            for site in remove_path: 
+#                del self.syst[site]  
+#            self.syst.eradicate_dangling()
+
+#    
+        paths = nx.all_simple_paths(self.full_graph,s,t,cutoff=5)
+        #if random.uniform(0,1) < 0.5: 
+        print("Adding rings")
+        try:
+            add_ring(paths)
+        except: 
+            print(s.pos,t.pos)
+            print(self.full_graph.nodes[s],self.full_graph.nodes[t])
+        paths = nx.all_simple_paths(self.full_graph,s,t,cutoff=5)
+        for path in paths: 
+            print(len(path))
+        #else: 
+        #    print("Removing rings")
+        #    remove_ring(paths)
+
+#        #return paths
         
          
     
