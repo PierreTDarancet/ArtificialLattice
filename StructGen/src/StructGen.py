@@ -209,7 +209,6 @@ class StructGen():
         pos = []
 
         
-        
         for i in range(1,len(atoms)+1): 
             x = atoms.loc[i,'x']
             y = atoms.loc[i,'y']
@@ -538,7 +537,7 @@ class StructGen():
         self.syst = syst 
         return self.syst 
         
-    def get_pol(self):
+    def get_pol(self,wcc=False):
         """
         Returns the polarization of the geometry corresponding to the curent 
         state of the random structure generator
@@ -560,7 +559,7 @@ class StructGen():
         red_pos = np.zeros(np.shape(act_pos))
         red_pos[:,0] = act_pos[:,0]/a
         red_pos[:,1] = act_pos[:,1]/b
-        return calc_pol(finalized_syst,red_pos);
+        return calc_pol(finalized_syst,red_pos,wcc=wcc);
     
     def plot_syst(self): 
         kwant.plot(self.syst)
