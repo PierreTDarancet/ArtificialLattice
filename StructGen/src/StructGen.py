@@ -10,7 +10,7 @@ Created on Mon Mar 18 16:27:19 2019
 from helper import Armchair,get_width
 from pymatgen.io.lammps.data import LammpsData 
 from pymatgen import Lattice, Structure
-from math import floor
+from math import floor,ceil,copysign
 import kwant,z2pack
 import cmath,random,operator 
 import numpy as np 
@@ -179,7 +179,7 @@ class StructGen():
     def _make_full_syst(self): 
         full_syst = kwant.Builder()
         full_syst[self.lat.shape(
-                (lambda pos: 0<=pos[0]<=self.lx and -1*self.ly<=pos[1]<=self.ly),
+                (lambda pos: 0<=pos[0]<=self.lx and 0<=pos[1]<=self.ly),
                 (0,0))] = self.onsite 
         full_syst[self.lat.neighbors()] = self.hop
         return full_syst
@@ -581,15 +581,20 @@ class StructGen():
         nmax_sites = len(self.full_syst_pos)
         adjMat = np.zeros((nmax_sites,nmax_sites))   
         
+        pos = np.array(self._get_site_pos())
+        ymin = np.min(pos[:,1]) 
+        offset = copysign(1,ymin)*ceil(abs(ymin)/self.lat.prim_vecs[1][1])*self.lat.prim_vecs[1][1]
+                
         def _get_index(site):
             x,y = site 
             x -= floor(x/self.lx)*self.lx
+            y -= offset
             for i,item in enumerate(self.full_syst_pos):
                 diff = abs(item[0]-x) + abs(item[1]-y)
                 if diff < 1.e-2:
                     return i
             return None 
-
+        
         def _is_inside_cell(site1,site2): 
             x1,y1 = site1.pos 
             x2,y2 = site2.pos 
