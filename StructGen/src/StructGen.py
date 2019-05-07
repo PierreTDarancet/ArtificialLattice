@@ -129,9 +129,7 @@ class Check_redundant():
                 return True 
             else: 
                 self.seen_lat.add(sites)
-                return False
-        
-CR = Check_redundant()     
+                return False   
 
 class StructGen(): 
     """
@@ -164,7 +162,9 @@ class StructGen():
         self.full_syst_pos = None 
         self.index_dict = None 
         self.full_graph = None
+        self.full_double_graph = None 
         self.full_syst = None
+        self.full_double_syst = None 
         self.mirror_sym_pairs = None 
         self._set_full_syst_attributes()
         self.graph = None 
@@ -172,9 +172,9 @@ class StructGen():
     def _get_mirror_symmetric_pairs(self): 
         mirror_plane = self.lx/2.0
         mirror_sym_pairs = {}
-        for site1 in list(self.full_syst.sites()): 
+        for site1 in list(self.full_double_syst.sites()): 
             x1,y1 = site1.pos
-            for site2 in list(self.full_syst.sites()): 
+            for site2 in list(self.full_double_syst.sites()): 
                 if site1 is not site2: 
                     x2,y2 = site2.pos
                     x_check = abs(abs(x1-mirror_plane)-abs(x2-mirror_plane)) < 1.e-2 
@@ -191,10 +191,10 @@ class StructGen():
             pos = np.array([site.pos for site in list(syst.sites())]).tolist()
             return pos
         
-    def _make_full_syst(self): 
+    def _make_full_syst(self,uly): 
         full_syst = kwant.Builder()
         full_syst[self.lat.shape(
-                (lambda pos: 0<=pos[0]<=self.lx and 0<=pos[1]<=self.ly),
+                (lambda pos: 0<=pos[0]<=self.lx and uly<=pos[1]<=self.ly),
                 (0,0))] = self.onsite 
         full_syst[self.lat.neighbors()] = self.hop
         return full_syst
@@ -264,7 +264,7 @@ class StructGen():
         
         
     def _set_full_syst_attributes(self): 
-        full_syst = self._make_full_syst()
+        full_syst = self._make_full_syst(uly=0)
         pos = self._get_site_pos(syst=full_syst)
         pos.sort(key=operator.itemgetter(0,1))
         pos = np.array(pos)
@@ -278,8 +278,13 @@ class StructGen():
         self.full_syst = full_syst
         del full_syst 
         self.syst = None
+        double_full_syst = self._make_full_syst(uly=-1*self.ly)
+        self.syst = double_full_syst
+        self.full_double_syst = double_full_syst
+        self.full_double_graph = self._construct_full_graph() 
+        del double_full_syst
+        self.syst = None
         self.mirror_sym_pairs = self._get_mirror_symmetric_pairs()
-        
         
     def _get_random_2pts(self,L,w): 
         """ Used internally for randomly choosing 2pts so 
@@ -307,7 +312,7 @@ class StructGen():
         self.plot_syst()
         possible_head_tails = []
         for (s,t) in itertools.combinations(edge_sites,2):
-            if nx.shortest_path_length(self.full_graph,s,t) <7:
+            if nx.shortest_path_length(self.full_double_graph,s,t) <7:
                 possible_head_tails.append([s,t])
                 
 
@@ -349,8 +354,14 @@ class StructGen():
                 print("Removing rings")        
                 remove_path = random.choice(path_exist)
                 for site in remove_path: 
-                    del self.syst[site]  
-                    del self.syst[self.mirror_sym_pairs[site]]
+                    try:
+                        del self.syst[site]  
+                        del self.syst[self.mirror_sym_pairs[site]]
+                    except: 
+                        print(site.pos)
+                        print(self.syst.closest(site.pos))
+                        print(site)
+                        raise
                 self.syst.eradicate_dangling()
                 return True 
 
@@ -362,7 +373,7 @@ class StructGen():
             move = _remove_ring
         while not moved:
             [s,t] = random.choice(possible_head_tails)
-            paths = nx.all_simple_paths(self.full_graph,s,t,cutoff=5)          
+            paths = nx.all_simple_paths(self.full_double_graph,s,t,cutoff=5)          
             moved = move(paths)
             if moved == False:
                 print(s.pos,t.pos)
