@@ -164,10 +164,25 @@ class StructGen():
         self.full_syst_pos = None 
         self.index_dict = None 
         self.full_graph = None
-        self.full_syst = None 
+        self.full_syst = None
+        self.mirror_sym_pairs = None 
         self._set_full_syst_attributes()
         self.graph = None 
         
+    def _get_mirror_symmetric_pairs(self): 
+        mirror_plane = self.lx/2.0
+        mirror_sym_pairs = {}
+        for site1 in list(self.full_syst.sites()): 
+            x1,y1 = site1.pos
+            for site2 in list(self.full_syst.sites()): 
+                if site1 is not site2: 
+                    x2,y2 = site2.pos
+                    x_check = abs(abs(x1-mirror_plane)-abs(x2-mirror_plane)) < 1.e-2 
+                    y_check = abs(y1-y2) < 1.e-2
+                    if x_check and y_check:
+                        mirror_sym_pairs[site1] = site2
+        return mirror_sym_pairs
+                                                
     def _get_site_pos(self,syst=None):
         if syst is None:
             pos = np.array([site.pos for site in list(self.syst.sites())]).tolist()
@@ -262,7 +277,8 @@ class StructGen():
         self.full_graph = self._construct_full_graph()
         self.full_syst = full_syst
         del full_syst 
-        self.syst = None 
+        self.syst = None
+        self.mirror_sym_pairs = self._get_mirror_symmetric_pairs()
         
         
     def _get_random_2pts(self,L,w): 
@@ -288,12 +304,13 @@ class StructGen():
         for site in self.syst.sites(): 
             if self.syst.degree(site)<3:
                 edge_sites.append(site)
-        
+        self.plot_syst()
         possible_head_tails = []
         for (s,t) in itertools.combinations(edge_sites,2):
             if nx.shortest_path_length(self.full_graph,s,t) <7:
                 possible_head_tails.append([s,t])
-        
+                
+
         def _add_ring(paths): 
             path_not_exist = []
             for path in paths: 
@@ -311,6 +328,7 @@ class StructGen():
                 add_path = random.choice(path_not_exist)
                 for site in add_path:
                     self.syst[site] = self.onsite 
+                    self.syst[self.mirror_sym_pairs[site]] = self.onsite
                 self.syst[self.lat.neighbors()] = self.hop
                 return True
         
@@ -332,6 +350,7 @@ class StructGen():
                 remove_path = random.choice(path_exist)
                 for site in remove_path: 
                     del self.syst[site]  
+                    del self.syst[self.mirror_sym_pairs[site]]
                 self.syst.eradicate_dangling()
                 return True 
 
@@ -370,49 +389,43 @@ class StructGen():
                         return True 
                     else: 
                         return False
-        ntrial=0 
-        while CR.is_redundant(self.syst):
-            ypt11,ypt12 = self._get_random_2pts(self.ly,min_width)
-            ypt11,ypt12 = min(ypt11,ypt12),max(ypt11,ypt12)
-            PTS1 = [[0,ypt11],[0,ypt12]]
+        
+        ypt11,ypt12 = self._get_random_2pts(self.ly,min_width)
+        ypt11,ypt12 = min(ypt11,ypt12),max(ypt11,ypt12)
+        PTS1 = [[0,ypt11],[0,ypt12]]
 
                 
-            ypt21,ypt22 = self._get_random_2pts(rect_L_plus_W,min_width)
-            ypt21,ypt22 = min(ypt21,ypt22),max(ypt21,ypt22)
-            PTS2=[]
-            for pt in [ypt21,ypt22]: 
-                if pt > self.ly:
-                    PTS2.append([self.lx/2.0+self.ly-pt,self.ly])
-                else: 
-                    PTS2.append([self.lx/2.0,pt])
+        ypt21,ypt22 = self._get_random_2pts(rect_L_plus_W,min_width)
+        ypt21,ypt22 = min(ypt21,ypt22),max(ypt21,ypt22)
+        PTS2=[]
+        for pt in [ypt21,ypt22]: 
+            if pt > self.ly:
+                PTS2.append([self.lx/2.0+self.ly-pt,self.ly])
+            else: 
+                PTS2.append([self.lx/2.0,pt])
             
-            PTS2 = sorted(PTS2,key=lambda x: x[0],reverse = True)
-            if abs(PTS2[0][0] - PTS2[1][0]) < 1.e-4: 
-                PTS2 = sorted(PTS2,key=lambda x: x[1])
+        PTS2 = sorted(PTS2,key=lambda x: x[0],reverse = True)
+        if abs(PTS2[0][0] - PTS2[1][0]) < 1.e-4: 
+            PTS2 = sorted(PTS2,key=lambda x: x[1])
                 
-            lineCoeff1 =  np.polyfit([PTS1[0][0],PTS2[0][0]],
+        lineCoeff1 =  np.polyfit([PTS1[0][0],PTS2[0][0]],
                                      [PTS1[0][1],PTS2[0][1]],1)
         
-            lineCoeff2 =  np.polyfit([PTS1[1][0],PTS2[1][0]],
+        lineCoeff2 =  np.polyfit([PTS1[1][0],PTS2[1][0]],
                                      [PTS1[1][1],PTS2[1][1]],1)
             #offset = (lineCoeff1[1]+lineCoeff2[1])/2
-            offset = lineCoeff1[1]
-            lineCoeff1[1] -= offset 
-            lineCoeff2[1] -= offset
+        offset = lineCoeff1[1]
+        lineCoeff1[1] -= offset 
+        lineCoeff2[1] -= offset
         
-            syst = kwant.Builder(kwant.TranslationalSymmetry([self.lx,0]))
-            syst[self.lat.shape((lambda pos: _shape_from_lines(pos,offset,
+        syst = kwant.Builder(kwant.TranslationalSymmetry([self.lx,0]))
+        syst[self.lat.shape((lambda pos: _shape_from_lines(pos,offset,
                                               lineCoeff1=lineCoeff1, 
                                               lineCoeff2=lineCoeff2)),(0,0))]=self.onsite 
-            syst[self.lat.neighbors()]=self.hop
-            syst.eradicate_dangling()
-            self.syst = syst
-            ntrial +=1 
-            if ntrial > 10000: 
-                return False 
-        
-        return True 
-        
+        syst[self.lat.neighbors()]=self.hop
+        syst.eradicate_dangling()
+        self.syst = syst
+
     def get_syst(self): 
         """
         Returns the kwant.Builder instance corresponding to the current state 
