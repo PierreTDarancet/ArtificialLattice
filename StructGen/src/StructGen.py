@@ -15,6 +15,7 @@ import kwant,z2pack
 import cmath,random,operator 
 import numpy as np 
 import networkx as nx 
+import networkx.algorithms.isomorphism as iso
 import itertools
 
 def get_Hk(sys, args=(), momenta=65, file=None, *, params=None,dim=3):
@@ -106,9 +107,10 @@ class Check_redundant():
     seen_lat: set of set of sites of previously seen unit cells  
     """
     def __init__(self):
-        self.seen_lat = set()
+        self.seen_lat = []
+        self.nm = iso.numerical_edge_match(['x','y'],[0,0])
     
-    def is_redundant(self,syst):
+    def is_redundant(self,gen):
         """Returns True if the structure has been seen before by the generator
         
         Parameters:
@@ -120,16 +122,17 @@ class Check_redundant():
         Boolean 
         """
         
-        if syst is None: 
+        if gen.syst is None: 
             return True 
         else:
-            sites = frozenset(site for site in list(syst.sites()))
-            if sites in self.seen_lat: 
-                print("Redundant structure identified")
-                return True 
-            else: 
-                self.seen_lat.add(sites)
-                return False   
+            G = gen.construct_graph()
+            if len(self.seen_lat)!=0:
+                for g in self.seen_lat:
+                    if nx.is_isomorphic(G,g,node_match=self.nm):
+                        print("Redundant structure identified")
+                        return True 
+            self.seen_lat.append(G)
+            return False
 
 class StructGen(): 
     """
@@ -257,8 +260,8 @@ class StructGen():
         G = nx.Graph()
         for hopping,value in self.syst.hopping_value_pairs():
             u,v = hopping
-            G.add_node(u,pos=u.pos) 
-            G.add_node(v,pos=v.pos) 
+            G.add_node(u,x=u.pos[0],y=u.pos[1]) 
+            G.add_node(v,x=v.pos[0],y=u.pos[1]) 
             G.add_edge(u,v)
         return G 
         
@@ -353,13 +356,21 @@ class StructGen():
             else: 
                 print("Removing rings")        
                 remove_path = random.choice(path_exist)
+                symmetric_duplicates = []
+                for site in remove_path: 
+                    if self.mirror_sym_pairs[site] in remove_path: 
+                        symmetric_duplicates.append(self.mirror_sym_pairs[site])
+                for site in symmetric_duplicates: 
+                    remove_path.remove(site)
                 for site in remove_path: 
                     try:
+                        print(site.pos)
                         del self.syst[site]  
                         del self.syst[self.mirror_sym_pairs[site]]
                     except: 
+                        print("Failed")
                         print(site.pos)
-                        print(self.syst.closest(site.pos))
+                        print(self.syst.closest(site.pos).pos)
                         print(site)
                         raise
                 self.syst.eradicate_dangling()
@@ -377,7 +388,7 @@ class StructGen():
             moved = move(paths)
             if moved == False:
                 print(s.pos,t.pos)
-                print(self.full_graph.nodes[s],self.full_graph.nodes[t])
+                print(self.full_double_graph.nodes[s],self.full_double_graph.nodes[t])
         
          
     def random_mirror_symmetric(self,symmetry=['mirror'],Ncentral=7): 
@@ -663,8 +674,8 @@ class StructGen():
                 hop=-1
             x1,y1 = self.full_syst_pos[i]
             x2,y2 = self.full_syst_pos[j] 
-            G.add_node(i,pos=[x1,y1])
-            G.add_node(j,pos=[x2,y2])
+            G.add_node(i,x=x1,y=y1)
+            G.add_node(j,x=x2,y=y2)
             if x1 < x2: 
                 G.add_edge(i,j,hop=hop)
             else: 
@@ -684,7 +695,7 @@ class StructGen():
         """
         pos = {}        
         for node in self.graph.nodes(data=True):
-            pos[node[0]] = node[-1]['pos']
+            pos[node[0]] = [node[-1]['x'],node[-1]['y']]
         edge_color=[]
         for edge in self.graph.edges(data=True): 
             if edge[-1]['hop'] > 0: 
