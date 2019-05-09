@@ -17,6 +17,7 @@ import numpy as np
 import networkx as nx 
 import networkx.algorithms.isomorphism as iso
 import itertools
+import copy
 
 def get_Hk(sys, args=(), momenta=65, file=None, *, params=None,dim=3):
     """Returns hamiltonian as a function of k. Modified from kwant's 
@@ -125,14 +126,13 @@ class Check_redundant():
         if gen.syst is None: 
             return True 
         else:
-            G = gen.construct_graph()
-            if len(self.seen_lat)!=0:
-                for g in self.seen_lat:
-                    if nx.is_isomorphic(G,g,node_match=self.nm):
-                        print("Redundant structure identified")
-                        return True 
-            self.seen_lat.append(G)
-            return False
+            adjstr = "".join([str(item) for item in gen.get_adjacency().flatten()]) 
+            if adjstr not in self.seen_lat: 
+                self.seen_lat.append(adjstr)
+                return False 
+            else: 
+                print("Redundant structure identified")
+                return True 
 
 class StructGen(): 
     """
@@ -255,6 +255,7 @@ class StructGen():
         return syst 
         #min_x = np.min(pos[:,0])
         #max_x = np.min(pos[:,0])
+        
     def _construct_full_graph(self,draw=False): 
               
         G = nx.Graph()
@@ -306,7 +307,16 @@ class StructGen():
                 pt2 = random.uniform(pt1+w,L)
         return pt1,pt2
     
+    
+    def _is_continous(self): 
+        G = self.construct_graph() 
+        pos = np.array(self._get_site_pos())
+        head_pos_ind,tail_pos_ind = np.argmin(pos[:,0]),np.argmax(pos[:,0])
+        head,tail = self.syst.closest(pos[head_pos_ind]),self.syst.closest(pos[tail_pos_ind])
+        return nx.has_path(G,head,tail)
+    
     def swap_move(self):
+        
         
         edge_sites = []
         for site in self.syst.sites(): 
@@ -319,7 +329,9 @@ class StructGen():
                 possible_head_tails.append([s,t])
                 
 
-        def _add_ring(paths): 
+        def _add_ring(paths):
+            pos = np.array(self._get_site_pos())
+            ymin,ymax = np.min(pos[:,1]),np.max(pos[:,1])
             path_not_exist = []
             for path in paths: 
                 if len(path) <7: 
@@ -335,12 +347,21 @@ class StructGen():
                 print("Adding rings")
                 add_path = random.choice(path_not_exist)
                 for site in add_path:
-                    self.syst[site] = self.onsite 
-                    self.syst[self.mirror_sym_pairs[site]] = self.onsite
+                    ysite = site.pos[1]
+                    if max([abs(ymin-ysite),abs(ymax-ysite)]) > self.ly:
+                        print("Add site exceeds box contrains")
+                        return False 
+                for site in add_path:
+                        self.syst[site] = self.onsite 
+                        self.syst[self.mirror_sym_pairs[site]] = self.onsite
                 self.syst[self.lat.neighbors()] = self.hop
                 return True
         
         def _remove_ring(paths): 
+            
+            # Creating a temp copy in case something goes wrong during the 
+            # ring removal processs
+            temp_syst = copy.deepcopy(self.syst) 
             path_exist = []
             for path in paths: 
                 print(len(path))
@@ -353,7 +374,7 @@ class StructGen():
                         path_exist.append(path)      
             if not path_exist: 
                 return False 
-            else: 
+            elif len(path_exist) > 1: 
                 print("Removing rings")        
                 remove_path = random.choice(path_exist)
                 symmetric_duplicates = []
@@ -374,7 +395,14 @@ class StructGen():
                         print(site)
                         raise
                 self.syst.eradicate_dangling()
-                return True 
+                if self._is_continous():
+                    return True
+                else: 
+                    self.syst = copy.deepcopy(temp_syst) 
+                    del temp_syst
+                    return False 
+            else: 
+                return False
 
         moved = False 
         rand = random.uniform(0,1)
@@ -646,7 +674,7 @@ class StructGen():
                 adjMat[index_i,index_j]=1
             else: 
                 adjMat[index_i,index_j]=-1      
-        return adjMat
+        return adjMat.astype('int8')
 
     def construct_graph(self,draw=False): 
         """
