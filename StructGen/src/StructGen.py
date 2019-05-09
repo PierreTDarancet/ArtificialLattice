@@ -323,7 +323,6 @@ class StructGen():
         for site in self.syst.sites(): 
             if self.syst.degree(site)<3:
                 edge_sites.append(site)
-        self.plot_syst()
         possible_head_tails = []
         for (s,t) in itertools.combinations(edge_sites,2):
             if nx.shortest_path_length(self.full_double_graph,s,t) <7:
@@ -385,25 +384,22 @@ class StructGen():
                 for site in symmetric_duplicates: 
                     remove_path.remove(site)
                 for site in remove_path: 
-                    try:
-                        print(site.pos)
-                        del self.syst[site]  
-                        del self.syst[self.mirror_sym_pairs[site]]
-                    except: 
-                        print("Failed")
-                        print(site.pos)
-                        print(self.syst.closest(site.pos).pos)
-                        print(site)
-                        raise
-                self.plot_syst()
+                    print(site.pos)
+                    del self.syst[site]  
+                    del self.syst[self.mirror_sym_pairs[site]]
+
                 try: 
                     self.syst.eradicate_dangling()
                 except: 
                     self.syst = copy.deepcopy(temp_syst) 
                     del temp_syst
                     return False 
-                if self._is_continous():
-                    return True
+                try:
+                    if self._is_continous():
+                        return True
+                except: 
+                    self.random_mirror_symmetric() 
+                    return True 
                 else: 
                     self.syst = copy.deepcopy(temp_syst) 
                     del temp_syst
@@ -424,8 +420,12 @@ class StructGen():
             [s,t] = random.choice(possible_head_tails)
             paths = nx.all_simple_paths(self.full_double_graph,s,t,cutoff=5)          
             moved = move(paths)
-            if move == _remove_ring and ntrail > 50:
-                move = _add_ring
+            if ntrail > 100:
+                self.random_mirror_symmetric()
+                if move == _add_ring:
+                    move = _remove_ring
+                else: 
+                    move = _add_ring
             #if moved == False:
                 #print(s.pos,t.pos)
                 #print(self.full_double_graph.nodes[s],self.full_double_graph.nodes[t])
