@@ -11,6 +11,7 @@ from helper import Armchair,get_width
 from pymatgen.io.lammps.data import LammpsData 
 from pymatgen import Lattice, Structure
 from math import floor,ceil,copysign
+from operator import itemgetter
 import kwant,z2pack
 import cmath,random,operator 
 import numpy as np 
@@ -310,9 +311,9 @@ class StructGen():
     
     def _is_continous(self): 
         G = self.construct_graph() 
-        pos = np.array(self._get_site_pos())
-        head_pos_ind,tail_pos_ind = np.argmin(pos[:,0]),np.argmax(pos[:,0])
-        head,tail = self.syst.closest(pos[head_pos_ind]),self.syst.closest(pos[tail_pos_ind])
+        graph_xlist = [node for node in G.nodes('x')]
+        graph_xlist = sorted(graph_xlist,key=itemgetter(1))
+        head,tail = graph_xlist[0][0],graph_xlist[-1][0]
         return nx.has_path(G,head,tail)
     
     def swap_move(self):
@@ -394,7 +395,13 @@ class StructGen():
                         print(self.syst.closest(site.pos).pos)
                         print(site)
                         raise
-                self.syst.eradicate_dangling()
+                self.plot_syst()
+                try: 
+                    self.syst.eradicate_dangling()
+                except: 
+                    self.syst = copy.deepcopy(temp_syst) 
+                    del temp_syst
+                    return False 
                 if self._is_continous():
                     return True
                 else: 
@@ -405,18 +412,23 @@ class StructGen():
                 return False
 
         moved = False 
+       
         rand = random.uniform(0,1)
         if rand < 0.5: 
             move = _add_ring 
         else: 
             move = _remove_ring
+        ntrail = 0
         while not moved:
+            ntrail += 1
             [s,t] = random.choice(possible_head_tails)
             paths = nx.all_simple_paths(self.full_double_graph,s,t,cutoff=5)          
             moved = move(paths)
-            if moved == False:
-                print(s.pos,t.pos)
-                print(self.full_double_graph.nodes[s],self.full_double_graph.nodes[t])
+            if move == _remove_ring and ntrail > 50:
+                move = _add_ring
+            #if moved == False:
+                #print(s.pos,t.pos)
+                #print(self.full_double_graph.nodes[s],self.full_double_graph.nodes[t])
         
          
     def random_mirror_symmetric(self,symmetry=['mirror'],Ncentral=7): 
