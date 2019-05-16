@@ -564,7 +564,6 @@ class StructGen():
             
         syst[self.lat.shape(check_sites,(0,0))]=self.onsite
         syst[self.lat.neighbors()]=self.hop 
-        syst.eradicate_dangling() 
         self.syst = syst
         return self.syst 
     
