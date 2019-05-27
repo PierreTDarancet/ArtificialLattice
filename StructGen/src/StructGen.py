@@ -98,8 +98,7 @@ def calc_pol(syst,red_pos,wcc=False ):
         return result.wcc, result.pol
     else: 
         return result.pol
-
-
+    
 class Check_redundant(): 
     """ Class containing methods to check for redundancy between the randomly
     generated structures by StructGen()
@@ -109,10 +108,9 @@ class Check_redundant():
     seen_lat: set of set of sites of previously seen unit cells  
     """
     def __init__(self):
-        self.seen_lat = []
-        self.nm = iso.numerical_edge_match(['x','y'],[0,0])
+        self.seen_lat = set()
     
-    def is_redundant(self,gen):
+    def is_redundant(self,syst):
         """Returns True if the structure has been seen before by the generator
         
         Parameters:
@@ -124,16 +122,16 @@ class Check_redundant():
         Boolean 
         """
         
-        if gen.syst is None: 
+        if syst is None: 
             return True 
         else:
-            adjstr = "".join([str(item) for item in gen.get_adjacency().flatten()]) 
-            if adjstr not in self.seen_lat: 
-                self.seen_lat.append(adjstr)
-                return False 
-            else: 
+            sites = frozenset(site for site in list(syst.sites()))
+            if sites in self.seen_lat: 
                 print("Redundant structure identified")
                 return True 
+            else: 
+                self.seen_lat.add(sites)
+                return False
 
 class StructGen(): 
     """
