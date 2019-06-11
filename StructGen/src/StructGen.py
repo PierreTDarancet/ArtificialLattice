@@ -10,12 +10,15 @@ Created on Mon Mar 18 16:27:19 2019
 from helper import Armchair,get_width
 from pymatgen.io.lammps.data import LammpsData 
 from pymatgen import Lattice, Structure
-from math import floor
+from math import floor,ceil,copysign
+from operator import itemgetter
 import kwant,z2pack
 import cmath,random,operator 
 import numpy as np 
 import networkx as nx 
+import networkx.algorithms.isomorphism as iso
 import itertools
+import copy
 
 def get_Hk(sys, args=(), momenta=65, file=None, *, params=None,dim=3):
     """Returns hamiltonian as a function of k. Modified from kwant's 
@@ -95,8 +98,7 @@ def calc_pol(syst,red_pos,wcc=False ):
         return result.wcc, result.pol
     else: 
         return result.pol
-
-
+    
 class Check_redundant(): 
     """ Class containing methods to check for redundancy between the randomly
     generated structures by StructGen()
@@ -130,8 +132,6 @@ class Check_redundant():
             else: 
                 self.seen_lat.add(sites)
                 return False
-        
-CR = Check_redundant()     
 
 class StructGen(): 
     """
@@ -164,10 +164,27 @@ class StructGen():
         self.full_syst_pos = None 
         self.index_dict = None 
         self.full_graph = None
-        self.full_syst = None 
+        self.full_double_graph = None 
+        self.full_syst = None
+        self.full_double_syst = None 
+        self.mirror_sym_pairs = None 
         self._set_full_syst_attributes()
         self.graph = None 
         
+    def _get_mirror_symmetric_pairs(self): 
+        mirror_plane = self.lx/2.0
+        mirror_sym_pairs = {}
+        for site1 in list(self.full_double_syst.sites()): 
+            x1,y1 = site1.pos
+            for site2 in list(self.full_double_syst.sites()): 
+                if site1 is not site2: 
+                    x2,y2 = site2.pos
+                    x_check = abs(abs(x1-mirror_plane)-abs(x2-mirror_plane)) < 1.e-2 
+                    y_check = abs(y1-y2) < 1.e-2
+                    if x_check and y_check:
+                        mirror_sym_pairs[site1] = site2
+        return mirror_sym_pairs
+                                                
     def _get_site_pos(self,syst=None):
         if syst is None:
             pos = np.array([site.pos for site in list(self.syst.sites())]).tolist()
@@ -176,10 +193,33 @@ class StructGen():
             pos = np.array([site.pos for site in list(syst.sites())]).tolist()
             return pos
         
-    def _make_full_syst(self): 
+    def _set_full_syst_attributes(self): 
+        full_syst = self._make_full_syst(uly=0)
+        pos = self._get_site_pos(syst=full_syst)
+        pos.sort(key=operator.itemgetter(0,1))
+        pos = np.array(pos)
+        index_dict = {}
+        for i,site in enumerate(pos): 
+            index_dict[tuple(site)] =i
+        self.syst = full_syst
+        self.full_syst_pos = pos 
+        self.index_dict = index_dict
+        self.full_graph = self._construct_full_graph()
+        self.full_syst = full_syst
+        del full_syst 
+        self.syst = None
+        double_full_syst = self._make_full_syst(uly=-1*self.ly)
+        self.syst = double_full_syst
+        self.full_double_syst = double_full_syst
+        self.full_double_graph = self._construct_full_graph() 
+        del double_full_syst
+        self.syst = None
+        self.mirror_sym_pairs = self._get_mirror_symmetric_pairs()
+        
+    def _make_full_syst(self,uly): 
         full_syst = kwant.Builder()
         full_syst[self.lat.shape(
-                (lambda pos: 0<=pos[0]<=self.lx and -1*self.ly<=pos[1]<=self.ly),
+                (lambda pos: 0<=pos[0]<=self.lx and uly<=pos[1]<=self.ly),
                 (0,0))] = self.onsite 
         full_syst[self.lat.neighbors()] = self.hop
         return full_syst
@@ -209,7 +249,6 @@ class StructGen():
         pos = []
 
         
-        
         for i in range(1,len(atoms)+1): 
             x = atoms.loc[i,'x']
             y = atoms.loc[i,'y']
@@ -238,75 +277,166 @@ class StructGen():
         return syst 
         #min_x = np.min(pos[:,0])
         #max_x = np.min(pos[:,0])
+        
     def _construct_full_graph(self,draw=False): 
               
         G = nx.Graph()
         for hopping,value in self.syst.hopping_value_pairs():
             u,v = hopping
-            G.add_node(u,pos=u.pos) 
-            G.add_node(v,pos=v.pos) 
+            G.add_node(u,x=u.pos[0],y=u.pos[1]) 
+            G.add_node(v,x=v.pos[0],y=u.pos[1]) 
             G.add_edge(u,v)
         return G 
         
         
-    def _set_full_syst_attributes(self): 
-        full_syst = self._make_full_syst()
-        pos = self._get_site_pos(syst=full_syst)
-        pos.sort(key=operator.itemgetter(0,1))
-        pos = np.array(pos)
-        index_dict = {}
-        for i,site in enumerate(pos): 
-            index_dict[tuple(site)] =i
-        self.syst = full_syst
-        self.full_syst_pos = pos 
-        self.index_dict = index_dict
-        self.full_graph = self._construct_full_graph()
-        self.full_syst = full_syst
-        del full_syst 
-        self.syst = None 
+
         
-        
-    def _get_random_2pts(self,L,w): 
-        """ Used internally for randomly choosing 2pts so 
-        the width of the structure at the boundary is atleast w
-        """
-        pt1 = random.uniform(0,self.ly)
-        if 0 <= pt1 <= w: 
-            pt2 = random.uniform(pt1+w,L)
-        elif L - w <= pt1 <=L: 
-            pt2 = random.uniform(0,pt1-w)
-        else: 
-            prob1 = (pt1-w)/(L-2*w)
-            if random.random() <= prob1:
-                pt2 = random.uniform(0,pt1-w)
-            else: 
-                pt2 = random.uniform(pt1+w,L)
-        return pt1,pt2
+
+    
+    def _is_continous(self): 
+        G = self.construct_graph() 
+        graph_xlist = [node for node in G.nodes('x')]
+        graph_xlist = sorted(graph_xlist,key=itemgetter(1))
+        head,tail = graph_xlist[0][0],graph_xlist[-1][0]
+        return nx.has_path(G,head,tail)
     
     def swap_move(self):
         
-        #G_syst = self.construct_graph()
+        
         edge_sites = []
         for site in self.syst.sites(): 
-            if self.syst.degree(site) < 3:
+            if self.syst.degree(site)<3:
                 edge_sites.append(site)
-        
         possible_head_tails = []
         for (s,t) in itertools.combinations(edge_sites,2):
-            if nx.shortest_path_length(self.full_graph,s,t) <4:
+            if nx.shortest_path_length(self.full_double_graph,s,t) <7:
                 possible_head_tails.append([s,t])
-        paths = {}
-        for s,t in possible_head_tails: 
-            paths[s,t] = nx.all_simple_paths(self.full_graph,s,t,cutoff=5)
-        return self.full_graph,possible_head_tails,paths
+                
+
+        def _add_ring(paths):
+            pos = np.array(self._get_site_pos())
+            ymin,ymax = np.min(pos[:,1]),np.max(pos[:,1])
+            path_not_exist = []
+            for path in paths: 
+                if len(path) <7: 
+                    site_exist_in_path = True 
+                    for site in path: 
+                        if site not in self.syst.sites(): 
+                            site_exist_in_path = False 
+                    if not site_exist_in_path: 
+                        path_not_exist.append(path)     
+            if not path_not_exist: 
+                return False
+            else: 
+                print("Adding rings")
+                add_path = random.choice(path_not_exist)
+                for site in add_path:
+                    ysite = site.pos[1]
+                    if max([abs(ymin-ysite),abs(ymax-ysite)]) > self.ly:
+                        print("Add site exceeds box contrains")
+                        return False 
+                for site in add_path:
+                        self.syst[site] = self.onsite 
+                        self.syst[self.mirror_sym_pairs[site]] = self.onsite
+                self.syst[self.lat.neighbors()] = self.hop
+                return True
+        
+        def _remove_ring(paths): 
+            
+            # Creating a temp copy in case something goes wrong during the 
+            # ring removal processs
+            temp_syst = copy.deepcopy(self.syst) 
+            path_exist = []
+            for path in paths: 
+                print(len(path))
+                if len(path) <7: 
+                    site_exist_in_path = True 
+                    for site in path: 
+                        if site not in self.syst.sites(): 
+                            site_exist_in_path = False 
+                    if site_exist_in_path:
+                        path_exist.append(path)      
+            if not path_exist: 
+                return False 
+            elif len(path_exist) > 1: 
+                print("Removing rings")        
+                remove_path = random.choice(path_exist)
+                symmetric_duplicates = []
+                for site in remove_path: 
+                    if self.mirror_sym_pairs[site] in remove_path: 
+                        symmetric_duplicates.append(self.mirror_sym_pairs[site])
+                for site in symmetric_duplicates: 
+                    remove_path.remove(site)
+                for site in remove_path: 
+                    print(site.pos)
+                    del self.syst[site]  
+                    del self.syst[self.mirror_sym_pairs[site]]
+
+                try: 
+                    self.syst.eradicate_dangling()
+                except: 
+                    self.syst = copy.deepcopy(temp_syst) 
+                    del temp_syst
+                    return False 
+                try:
+                    if self._is_continous():
+                        return True
+                except: 
+                    self.random_mirror_symmetric() 
+                    return True 
+                else: 
+                    self.syst = copy.deepcopy(temp_syst) 
+                    del temp_syst
+                    return False 
+            else: 
+                return False
+
+        moved = False 
+       
+        rand = random.uniform(0,1)
+        if rand < 0.5: 
+            move = _add_ring 
+        else: 
+            move = _remove_ring
+        ntrail = 0
+        while not moved:
+            ntrail += 1
+            [s,t] = random.choice(possible_head_tails)
+            paths = nx.all_simple_paths(self.full_double_graph,s,t,cutoff=5)          
+            moved = move(paths)
+            if ntrail > 100:
+                self.random_mirror_symmetric()
+                if move == _add_ring:
+                    move = _remove_ring
+                else: 
+                    move = _add_ring
+            #if moved == False:
+                #print(s.pos,t.pos)
+                #print(self.full_double_graph.nodes[s],self.full_double_graph.nodes[t])
         
          
-    
     def random_mirror_symmetric(self,symmetry=['mirror'],Ncentral=7): 
                
         min_width = get_width(Ncentral,self.lat)
         rect_L_plus_W = self.lx/4.0 + self.ly
         self.syst = None 
+        
+        def _get_random_2pts(self,L,w): 
+            """ Used internally for randomly choosing 2pts so 
+            the width of the structure at the boundary is atleast w
+            """
+            pt1 = random.uniform(0,self.ly)
+            if 0 <= pt1 <= w: 
+                pt2 = random.uniform(pt1+w,L)
+            elif L - w <= pt1 <=L: 
+                pt2 = random.uniform(0,pt1-w)
+            else: 
+                prob1 = (pt1-w)/(L-2*w)
+                if random.random() <= prob1:
+                    pt2 = random.uniform(0,pt1-w)
+                else: 
+                    pt2 = random.uniform(pt1+w,L)
+            return pt1,pt2
         
         def _shape_from_lines(pos,offset,lineCoeff1,lineCoeff2):
                 x,y = pos
@@ -322,49 +452,119 @@ class StructGen():
                         return True 
                     else: 
                         return False
-        ntrial=0 
-        while CR.is_redundant(self.syst):
-            ypt11,ypt12 = self._get_random_2pts(self.ly,min_width)
-            ypt11,ypt12 = min(ypt11,ypt12),max(ypt11,ypt12)
-            PTS1 = [[0,ypt11],[0,ypt12]]
+        
+        ypt11,ypt12 = self._get_random_2pts(self.ly,min_width)
+        ypt11,ypt12 = min(ypt11,ypt12),max(ypt11,ypt12)
+        PTS1 = [[0,ypt11],[0,ypt12]]
 
                 
-            ypt21,ypt22 = self._get_random_2pts(rect_L_plus_W,min_width)
-            ypt21,ypt22 = min(ypt21,ypt22),max(ypt21,ypt22)
-            PTS2=[]
-            for pt in [ypt21,ypt22]: 
-                if pt > self.ly:
-                    PTS2.append([self.lx/2.0+self.ly-pt,self.ly])
-                else: 
-                    PTS2.append([self.lx/2.0,pt])
+        ypt21,ypt22 = self._get_random_2pts(rect_L_plus_W,min_width)
+        ypt21,ypt22 = min(ypt21,ypt22),max(ypt21,ypt22)
+        PTS2=[]
+        for pt in [ypt21,ypt22]: 
+            if pt > self.ly:
+                PTS2.append([self.lx/2.0+self.ly-pt,self.ly])
+            else: 
+                PTS2.append([self.lx/2.0,pt])
             
-            PTS2 = sorted(PTS2,key=lambda x: x[0],reverse = True)
-            if abs(PTS2[0][0] - PTS2[1][0]) < 1.e-4: 
-                PTS2 = sorted(PTS2,key=lambda x: x[1])
+        PTS2 = sorted(PTS2,key=lambda x: x[0],reverse = True)
+        if abs(PTS2[0][0] - PTS2[1][0]) < 1.e-4: 
+            PTS2 = sorted(PTS2,key=lambda x: x[1])
                 
-            lineCoeff1 =  np.polyfit([PTS1[0][0],PTS2[0][0]],
+        lineCoeff1 =  np.polyfit([PTS1[0][0],PTS2[0][0]],
                                      [PTS1[0][1],PTS2[0][1]],1)
         
-            lineCoeff2 =  np.polyfit([PTS1[1][0],PTS2[1][0]],
+        lineCoeff2 =  np.polyfit([PTS1[1][0],PTS2[1][0]],
                                      [PTS1[1][1],PTS2[1][1]],1)
             #offset = (lineCoeff1[1]+lineCoeff2[1])/2
-            offset = lineCoeff1[1]
-            lineCoeff1[1] -= offset 
-            lineCoeff2[1] -= offset
+        offset = lineCoeff1[1]
+        lineCoeff1[1] -= offset 
+        lineCoeff2[1] -= offset
         
-            syst = kwant.Builder(kwant.TranslationalSymmetry([self.lx,0]))
-            syst[self.lat.shape((lambda pos: _shape_from_lines(pos,offset,
+        syst = kwant.Builder(kwant.TranslationalSymmetry([self.lx,0]))
+        syst[self.lat.shape((lambda pos: _shape_from_lines(pos,offset,
                                               lineCoeff1=lineCoeff1, 
                                               lineCoeff2=lineCoeff2)),(0,0))]=self.onsite 
-            syst[self.lat.neighbors()]=self.hop
-            syst.eradicate_dangling()
-            self.syst = syst
-            ntrial +=1 
-            if ntrial > 10000: 
-                return False 
+        syst[self.lat.neighbors()]=self.hop
+        syst.eradicate_dangling()
+        self.syst = syst
+    
+    def random_inversion_symmetric(self,Ncentral=7): 
+        min_width = get_width(Ncentral,self.lat)
+        rect_L_plus_W = self.lx/4.0 + self.ly
+        self.syst = None 
         
-        return True 
+        def _get_randsym_2pts(L,w): 
+            """ Used internally for randomly choosing 2pts so 
+            the width of the structure at the boundary is atleast w
+            """
+            pt1 = random.uniform(0,L)
+            pt2 = -1*random.uniform(0,L)
+            if 0 <= abs(pt1)+abs(pt2) <= w:
+                short_by = w - abs(pt1) - abs(pt2)
+                pt1 += short_by/2.0 
+                pt2 -= short_by/2.0
+            return pt1,pt2
+    
+        def _shape_from_lines(pos,lineCoeff1,lineCoeff2):
+                x,y = pos
+                if -self.ly<=y<self.ly and  0<=x<self.lx: 
+                    if 0<=x<self.lx/2:
+                        val1 = np.polyval(lineCoeff1,abs(x))
+                        val2 = np.polyval(lineCoeff2,abs(x))  
+                        if val1<=y<=val2: 
+                            return True 
+                        else:
+                            return False
+                    else:
+                        val1 = -1*np.polyval(lineCoeff1,abs(self.lx-x))
+                        val2 = -1*np.polyval(lineCoeff2,abs(self.lx-x))
+                        if -self.ly<=y<self.ly and  0<=x<self.lx:    
+                            if val2<=y<=val1: 
+                                return True
+                            else: 
+                                return False
+                else: 
+                    return False
+                
+        ypt11 = -1*random.uniform(0,self.ly)
+        ypt12 = -1*ypt11
+        if ypt12-ypt11 < min_width: 
+            short_by = min_width - abs(ypt11)-abs(ypt12)
+            ypt11 += -1*abs(short_by)
+        #ypt11,ypt12 = min(ypt11,ypt12),max(ypt11,ypt12)
+        PTS1 = [[0,ypt11],[0,ypt12]]
+        ypt21,ypt22 = _get_randsym_2pts(rect_L_plus_W,min_width)
+        ypt21,ypt22 = min(ypt21,ypt22),max(ypt21,ypt22)
+        PTS2=[]
+        for pt in [ypt21,ypt22]: 
+            if pt > self.ly:
+                PTS2.append([self.lx/2.0+self.ly-pt,self.ly])
+            else: 
+                PTS2.append([self.lx/2.0,pt])
+            
+        PTS2 = sorted(PTS2,key=lambda x: x[0],reverse = True)
+        if abs(PTS2[0][0] - PTS2[1][0]) < 1.e-4: 
+            PTS2 = sorted(PTS2,key=lambda x: x[1])
+                
+        lineCoeff1 =  np.polyfit([PTS1[0][0],PTS2[0][0]],
+                                     [PTS1[0][1],PTS2[0][1]],1)
         
+        lineCoeff2 =  np.polyfit([PTS1[1][0],PTS2[1][0]],
+                                     [PTS1[1][1],PTS2[1][1]],1)
+            #offset = (lineCoeff1[1]+lineCoeff2[1])/2
+        #offset = lineCoeff1[1]
+        #lineCoeff1[1] -= offset 
+        #lineCoeff2[1] -= offset
+        
+        syst = kwant.Builder(kwant.TranslationalSymmetry([self.lx,0]))
+        syst[self.lat.shape((lambda pos: _shape_from_lines(pos,
+                                              lineCoeff1=lineCoeff1, 
+                                              lineCoeff2=lineCoeff2)),(0,0))]=self.onsite 
+        syst[self.lat.neighbors()]=self.hop
+        syst.eradicate_dangling()
+        self.syst = syst   
+    
     def get_syst(self): 
         """
         Returns the kwant.Builder instance corresponding to the current state 
@@ -441,7 +641,6 @@ class StructGen():
             
         syst[self.lat.shape(check_sites,(0,0))]=self.onsite
         syst[self.lat.neighbors()]=self.hop 
-        syst.eradicate_dangling() 
         self.syst = syst
         return self.syst 
     
@@ -489,7 +688,7 @@ class StructGen():
         self.syst = syst 
         return self.syst 
         
-    def get_pol(self):
+    def get_pol(self,wcc=False):
         """
         Returns the polarization of the geometry corresponding to the curent 
         state of the random structure generator
@@ -511,7 +710,7 @@ class StructGen():
         red_pos = np.zeros(np.shape(act_pos))
         red_pos[:,0] = act_pos[:,0]/a
         red_pos[:,1] = act_pos[:,1]/b
-        return calc_pol(finalized_syst,red_pos);
+        return calc_pol(finalized_syst,red_pos,wcc=wcc);
     
     def plot_syst(self): 
         kwant.plot(self.syst)
@@ -533,15 +732,20 @@ class StructGen():
         nmax_sites = len(self.full_syst_pos)
         adjMat = np.zeros((nmax_sites,nmax_sites))   
         
+        pos = np.array(self._get_site_pos())
+        ymin = np.min(pos[:,1]) 
+        offset = copysign(1,ymin)*ceil(abs(ymin)/self.lat.prim_vecs[1][1])*self.lat.prim_vecs[1][1]
+                
         def _get_index(site):
             x,y = site 
             x -= floor(x/self.lx)*self.lx
+            y -= offset
             for i,item in enumerate(self.full_syst_pos):
                 diff = abs(item[0]-x) + abs(item[1]-y)
                 if diff < 1.e-2:
                     return i
             return None 
-
+        
         def _is_inside_cell(site1,site2): 
             x1,y1 = site1.pos 
             x2,y2 = site2.pos 
@@ -558,7 +762,7 @@ class StructGen():
                 adjMat[index_i,index_j]=1
             else: 
                 adjMat[index_i,index_j]=-1      
-        return adjMat
+        return adjMat.astype('int8')
 
     def construct_graph(self,draw=False): 
         """
@@ -586,8 +790,8 @@ class StructGen():
                 hop=-1
             x1,y1 = self.full_syst_pos[i]
             x2,y2 = self.full_syst_pos[j] 
-            G.add_node(i,pos=[x1,y1])
-            G.add_node(j,pos=[x2,y2])
+            G.add_node(i,x=x1,y=y1)
+            G.add_node(j,x=x2,y=y2)
             if x1 < x2: 
                 G.add_edge(i,j,hop=hop)
             else: 
@@ -607,7 +811,7 @@ class StructGen():
         """
         pos = {}        
         for node in self.graph.nodes(data=True):
-            pos[node[0]] = node[-1]['pos']
+            pos[node[0]] = [node[-1]['x'],node[-1]['y']]
         edge_color=[]
         for edge in self.graph.edges(data=True): 
             if edge[-1]['hop'] > 0: 
