@@ -289,23 +289,7 @@ class StructGen():
         self.syst = None
         self.mirror_sym_pairs = self._get_mirror_symmetric_pairs()
         
-    def _get_random_2pts(self,L,w): 
-        """ Used internally for randomly choosing 2pts so 
-        the width of the structure at the boundary is atleast w
-        """
-        pt1 = random.uniform(0,self.ly)
-        if 0 <= pt1 <= w: 
-            pt2 = random.uniform(pt1+w,L)
-        elif L - w <= pt1 <=L: 
-            pt2 = random.uniform(0,pt1-w)
-        else: 
-            prob1 = (pt1-w)/(L-2*w)
-            if random.random() <= prob1:
-                pt2 = random.uniform(0,pt1-w)
-            else: 
-                pt2 = random.uniform(pt1+w,L)
-        return pt1,pt2
-    
+
     
     def _is_continous(self): 
         G = self.construct_graph() 
@@ -435,6 +419,23 @@ class StructGen():
         rect_L_plus_W = self.lx/4.0 + self.ly
         self.syst = None 
         
+        def _get_random_2pts(self,L,w): 
+            """ Used internally for randomly choosing 2pts so 
+            the width of the structure at the boundary is atleast w
+            """
+            pt1 = random.uniform(0,self.ly)
+            if 0 <= pt1 <= w: 
+                pt2 = random.uniform(pt1+w,L)
+            elif L - w <= pt1 <=L: 
+                pt2 = random.uniform(0,pt1-w)
+            else: 
+                prob1 = (pt1-w)/(L-2*w)
+                if random.random() <= prob1:
+                    pt2 = random.uniform(0,pt1-w)
+                else: 
+                    pt2 = random.uniform(pt1+w,L)
+            return pt1,pt2
+        
         def _shape_from_lines(pos,offset,lineCoeff1,lineCoeff2):
                 x,y = pos
                 if 0<=x<self.lx/2:
@@ -485,7 +486,87 @@ class StructGen():
         syst[self.lat.neighbors()]=self.hop
         syst.eradicate_dangling()
         self.syst = syst
-
+    
+    def random_inversion_symmetric(self,Ncentral=7): 
+        min_width = get_width(Ncentral,self.lat)
+        rect_L_plus_W = self.lx/4.0 + self.ly
+        self.syst = None 
+        
+        def _get_random_2pts(self,L,w): 
+            """ Used internally for randomly choosing 2pts so 
+            the width of the structure at the boundary is atleast w
+            """
+            pt1 = random.uniform(w/2.0,self.ly)
+            if 0 <= pt1 <= w: 
+                pt2 = random.uniform(pt1+w,L)
+            elif L - w <= pt1 <=L: 
+                pt2 = random.uniform(0,pt1-w)
+            else: 
+                prob1 = (pt1-w)/(L-2*w)
+                if random.random() <= prob1:
+                    pt2 = random.uniform(0,pt1-w)
+                else: 
+                    pt2 = random.uniform(pt1+w,L)
+            return pt1,pt2
+    
+        def _shape_from_lines(pos,offset,lineCoeff1,lineCoeff2):
+                x,y = pos
+                if 0<=x<self.lx/2:
+                    val1 = np.polyval(lineCoeff1,abs(x))
+                    val2 = np.polyval(lineCoeff2,abs(x))
+                else:
+                    val1 = np.polyval(lineCoeff1,abs(self.lx-x))
+                    val2 = np.polyval(lineCoeff2,abs(self.lx-x))
+                
+                if 0.0<=y+offset<self.ly and  0<=x<self.lx:    
+                    if val1<=y<=val2: 
+                        return True 
+                    else: 
+                        return False
+        ypt11 = -1*random.uniform(0,self.ly)
+        ypt12 = -1*ypt11
+        if ypt12-ypt11 < min_width: 
+            short_by = min_width - abs(ypt11)-abs(ypt12)
+            ypt11 += -1*abs(short_by)
+        #ypt11,ypt12 = min(ypt11,ypt12),max(ypt11,ypt12)
+        PTS1 = [[0,ypt11],[0,ypt12]]
+        ypt21,ypt22 = self._get_random_2pts(rect_L_plus_W,min_width)
+        ypt21,ypt22 = min(ypt21,ypt22),max(ypt21,ypt22)
+        PTS2=[]
+        for pt in [ypt21,ypt22]: 
+            if pt > self.ly:
+                PTS2.append([self.lx/2.0+self.ly-pt,self.ly])
+            else: 
+                PTS2.append([self.lx/2.0,pt])
+            
+        PTS2 = sorted(PTS2,key=lambda x: x[0],reverse = True)
+        if abs(PTS2[0][0] - PTS2[1][0]) < 1.e-4: 
+            PTS2 = sorted(PTS2,key=lambda x: x[1])
+                
+        lineCoeff1 =  np.polyfit([PTS1[0][0],PTS2[0][0]],
+                                     [PTS1[0][1],PTS2[0][1]],1)
+        
+        lineCoeff2 =  np.polyfit([PTS1[1][0],PTS2[1][0]],
+                                     [PTS1[1][1],PTS2[1][1]],1)
+            #offset = (lineCoeff1[1]+lineCoeff2[1])/2
+        offset = lineCoeff1[1]
+        lineCoeff1[1] -= offset 
+        lineCoeff2[1] -= offset
+        
+        syst = kwant.Builder(kwant.TranslationalSymmetry([self.lx,0]))
+        syst[self.lat.shape((lambda pos: _shape_from_lines(pos,offset,
+                                              lineCoeff1=lineCoeff1, 
+                                              lineCoeff2=lineCoeff2)),(0,0))]=self.onsite 
+        syst[self.lat.neighbors()]=self.hop
+        syst.eradicate_dangling()
+        self.syst = syst
+    
+    
+    
+    
+    
+    
+    
     def get_syst(self): 
         """
         Returns the kwant.Builder instance corresponding to the current state 
