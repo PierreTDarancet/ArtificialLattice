@@ -193,6 +193,29 @@ class StructGen():
             pos = np.array([site.pos for site in list(syst.sites())]).tolist()
             return pos
         
+    def _set_full_syst_attributes(self): 
+        full_syst = self._make_full_syst(uly=0)
+        pos = self._get_site_pos(syst=full_syst)
+        pos.sort(key=operator.itemgetter(0,1))
+        pos = np.array(pos)
+        index_dict = {}
+        for i,site in enumerate(pos): 
+            index_dict[tuple(site)] =i
+        self.syst = full_syst
+        self.full_syst_pos = pos 
+        self.index_dict = index_dict
+        self.full_graph = self._construct_full_graph()
+        self.full_syst = full_syst
+        del full_syst 
+        self.syst = None
+        double_full_syst = self._make_full_syst(uly=-1*self.ly)
+        self.syst = double_full_syst
+        self.full_double_syst = double_full_syst
+        self.full_double_graph = self._construct_full_graph() 
+        del double_full_syst
+        self.syst = None
+        self.mirror_sym_pairs = self._get_mirror_symmetric_pairs()
+        
     def _make_full_syst(self,uly): 
         full_syst = kwant.Builder()
         full_syst[self.lat.shape(
@@ -266,28 +289,7 @@ class StructGen():
         return G 
         
         
-    def _set_full_syst_attributes(self): 
-        full_syst = self._make_full_syst(uly=0)
-        pos = self._get_site_pos(syst=full_syst)
-        pos.sort(key=operator.itemgetter(0,1))
-        pos = np.array(pos)
-        index_dict = {}
-        for i,site in enumerate(pos): 
-            index_dict[tuple(site)] =i
-        self.syst = full_syst
-        self.full_syst_pos = pos 
-        self.index_dict = index_dict
-        self.full_graph = self._construct_full_graph()
-        self.full_syst = full_syst
-        del full_syst 
-        self.syst = None
-        double_full_syst = self._make_full_syst(uly=-1*self.ly)
-        self.syst = double_full_syst
-        self.full_double_syst = double_full_syst
-        self.full_double_graph = self._construct_full_graph() 
-        del double_full_syst
-        self.syst = None
-        self.mirror_sym_pairs = self._get_mirror_symmetric_pairs()
+
         
 
     
@@ -492,37 +494,39 @@ class StructGen():
         rect_L_plus_W = self.lx/4.0 + self.ly
         self.syst = None 
         
-        def _get_random_2pts(self,L,w): 
+        def _get_randsym_2pts(L,w): 
             """ Used internally for randomly choosing 2pts so 
             the width of the structure at the boundary is atleast w
             """
-            pt1 = random.uniform(w/2.0,self.ly)
-            if 0 <= pt1 <= w: 
-                pt2 = random.uniform(pt1+w,L)
-            elif L - w <= pt1 <=L: 
-                pt2 = random.uniform(0,pt1-w)
-            else: 
-                prob1 = (pt1-w)/(L-2*w)
-                if random.random() <= prob1:
-                    pt2 = random.uniform(0,pt1-w)
-                else: 
-                    pt2 = random.uniform(pt1+w,L)
+            pt1 = random.uniform(0,L)
+            pt2 = -1*random.uniform(0,L)
+            if 0 <= abs(pt1)+abs(pt2) <= w:
+                short_by = w - abs(pt1) - abs(pt2)
+                pt1 += short_by/2.0 
+                pt2 -= short_by/2.0
             return pt1,pt2
     
-        def _shape_from_lines(pos,offset,lineCoeff1,lineCoeff2):
+        def _shape_from_lines(pos,lineCoeff1,lineCoeff2):
                 x,y = pos
-                if 0<=x<self.lx/2:
-                    val1 = np.polyval(lineCoeff1,abs(x))
-                    val2 = np.polyval(lineCoeff2,abs(x))
-                else:
-                    val1 = np.polyval(lineCoeff1,abs(self.lx-x))
-                    val2 = np.polyval(lineCoeff2,abs(self.lx-x))
+                if -self.ly<=y<self.ly and  0<=x<self.lx: 
+                    if 0<=x<self.lx/2:
+                        val1 = np.polyval(lineCoeff1,abs(x))
+                        val2 = np.polyval(lineCoeff2,abs(x))  
+                        if val1<=y<=val2: 
+                            return True 
+                        else:
+                            return False
+                    else:
+                        val1 = -1*np.polyval(lineCoeff1,abs(self.lx-x))
+                        val2 = -1*np.polyval(lineCoeff2,abs(self.lx-x))
+                        if -self.ly<=y<self.ly and  0<=x<self.lx:    
+                            if val2<=y<=val1: 
+                                return True
+                            else: 
+                                return False
+                else: 
+                    return False
                 
-                if 0.0<=y+offset<self.ly and  0<=x<self.lx:    
-                    if val1<=y<=val2: 
-                        return True 
-                    else: 
-                        return False
         ypt11 = -1*random.uniform(0,self.ly)
         ypt12 = -1*ypt11
         if ypt12-ypt11 < min_width: 
@@ -530,7 +534,7 @@ class StructGen():
             ypt11 += -1*abs(short_by)
         #ypt11,ypt12 = min(ypt11,ypt12),max(ypt11,ypt12)
         PTS1 = [[0,ypt11],[0,ypt12]]
-        ypt21,ypt22 = self._get_random_2pts(rect_L_plus_W,min_width)
+        ypt21,ypt22 = _get_randsym_2pts(rect_L_plus_W,min_width)
         ypt21,ypt22 = min(ypt21,ypt22),max(ypt21,ypt22)
         PTS2=[]
         for pt in [ypt21,ypt22]: 
@@ -549,23 +553,17 @@ class StructGen():
         lineCoeff2 =  np.polyfit([PTS1[1][0],PTS2[1][0]],
                                      [PTS1[1][1],PTS2[1][1]],1)
             #offset = (lineCoeff1[1]+lineCoeff2[1])/2
-        offset = lineCoeff1[1]
-        lineCoeff1[1] -= offset 
-        lineCoeff2[1] -= offset
+        #offset = lineCoeff1[1]
+        #lineCoeff1[1] -= offset 
+        #lineCoeff2[1] -= offset
         
         syst = kwant.Builder(kwant.TranslationalSymmetry([self.lx,0]))
-        syst[self.lat.shape((lambda pos: _shape_from_lines(pos,offset,
+        syst[self.lat.shape((lambda pos: _shape_from_lines(pos,
                                               lineCoeff1=lineCoeff1, 
                                               lineCoeff2=lineCoeff2)),(0,0))]=self.onsite 
         syst[self.lat.neighbors()]=self.hop
         syst.eradicate_dangling()
-        self.syst = syst
-    
-    
-    
-    
-    
-    
+        self.syst = syst   
     
     def get_syst(self): 
         """
