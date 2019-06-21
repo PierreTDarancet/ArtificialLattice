@@ -183,18 +183,18 @@ def make_cove_edged_graphene(N=10,L=6):
     cove_ribbon = parent_ribbon
     return cove_ribbon
 
-def plot_wf(syst,i_start,i_end,ham):
-    """Plot the wave function mapping on system with Hamiltonian
-    "ham" in a PyWidget starting from band index i_start and
-    ending at i_end"""
-    eig_val,eig_vec = la.eigh(ham)
-    def plot_band(i=0):
-        print("Plotting wave function with index",i)
-        print("Energy of the corresponding mode",eig_val[i], "x t")
-        fig = kwant.plotter.map(syst,abs(eig_vec[:,i])**2,oversampling=50)
-        fig.savefig('figures/%s.jpg'%i,dpi=400,quality=100,transparent=True)
-
-    interact(plot_band,i=(i_start,i_end))
+#def plot_wf(syst,i_start,i_end,ham):
+#    """Plot the wave function mapping on system with Hamiltonian
+#    "ham" in a PyWidget starting from band index i_start and
+#    ending at i_end"""
+#    eig_val,eig_vec = la.eigh(ham)
+#    def plot_band(i=0):
+#        print("Plotting wave function with index",i)
+#        print("Energy of the corresponding mode",eig_val[i], "x t")
+#        fig = kwant.plotter.map(syst,abs(eig_vec[:,i])**2,oversampling=50)
+#        #fig.savefig('figures/%s.jpg'%i,dpi=400,quality=100,transparent=True)
+#
+#    interact(plot_band,i=(i_start,i_end))
 
 def finite_to_1D(system,lat_vec,trans_sym_direction='x'): 
     """Adds a translational symmetry on a finite system

@@ -16,7 +16,7 @@
 
 This module contains 
 """
-from helper import get_width
+from utilities import get_width
 import cmath
 import numpy as np
 import z2pack
