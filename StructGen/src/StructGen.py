@@ -89,7 +89,7 @@ def calc_pol(syst,red_pos,wcc=False ):
     """
     
     Hk = get_Hk(syst,dim=2)
-    z2_system = z2pack.hm.System(Hk,dim=2,pos=red_pos,
+    z2_system = z2pack.hm.System(Hk,dim=2,#pos=red_pos,
                                  convention=2)
     result = z2pack.line.run(system=z2_system, 
                               line=lambda t1: [t1,0],
