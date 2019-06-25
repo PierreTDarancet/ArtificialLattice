@@ -5,9 +5,8 @@ Created on Mon Mar 18 16:27:19 2019
 
 @author: ssrinivasan
 """
-
 #from helper import *
-from utilities import Armchair,get_width
+from .utilities import Armchair,get_width
 from pymatgen.io.lammps.data import LammpsData 
 from pymatgen import Lattice, Structure
 from math import floor,ceil,copysign

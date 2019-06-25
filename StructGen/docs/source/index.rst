@@ -1,5 +1,5 @@
 .. TopoQuest documentation master file, created by
-   sphinx-quickstart on Thu Apr  4 15:27:49 2019.
+   sphinx-quickstart on Tue Jun 25 11:28:06 2019.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
@@ -10,6 +10,12 @@ Welcome to TopoQuest's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+
+Code documentation
+==================
+
+.. automodule:: TopoQuest.StructGen
+    :members: 
 
 
 Indices and tables
