@@ -77,13 +77,13 @@ def get_Hk(sys, args=(), momenta=65, file=None, *, params=None,dim=3):
 def calc_pol(syst,red_pos,wcc=False ):   
     """ Returns the polarization of a unit cell built using kwant
     
-    Parameters:
-    -----------
+    Parameters
+    ----------
     syst: finalized kwant builder 
     red_pos: reduced position of the sites in the unit cell
     
-    Returns: 
-    --------
+    Returns 
+    -------
     result.pol: Polarization from the result of the line calculation using Z2pack
     """
     
@@ -102,8 +102,8 @@ class Check_redundant():
     """ Class containing methods to check for redundancy between the randomly
     generated structures by StructGen()
     
-    Attributes: 
-    ----------- 
+    Attributes 
+    ---------- 
     seen_lat: set of set of sites of previously seen unit cells  
     """
     def __init__(self):
@@ -112,12 +112,12 @@ class Check_redundant():
     def is_redundant(self,syst):
         """Returns True if the structure has been seen before by the generator
         
-        Parameters:
-        -----------
+        Parameters
+        ----------
         syst: Predicted builder by the generator 
         
-        Returns: 
-        --------
+        Returns 
+        -------
         Boolean 
         """
         
@@ -136,8 +136,8 @@ class StructGen():
     """
     Class for random 1D structure generator 
     
-    Attributes: 
-    -----------
+    Attributes 
+    ----------
     lat: kwant.lattice 
         lattice used for structure generation 
     lx: float 
@@ -576,13 +576,13 @@ class StructGen():
         Sets the current state of the random structure generator to the system 
         given 
         
-        Parameters: 
+        Parameters 
         ---------- 
         
         syst: kwant.Builder instance
         
-        Returns: 
-        ---------
+        Returns 
+        -------
             None 
         """
         self.syst=syst
@@ -591,7 +591,7 @@ class StructGen():
         """
         Saves the current state of the random structure generator as a POSCAR file
         
-        Parameters:
+        Parameters
         ----------
         
         filename: str
@@ -612,14 +612,14 @@ class StructGen():
         of the generator must match that of the poscar files. Use 
         set_cell_attributes() to set lx,ly and lattice.  
         
-        Parameters:
+        Parameters
         ---------- 
         
         POSCAR: str 
                 path to POSCAR file 
         
-        Returns: 
-        ---------
+        Returns 
+        -------
             kwant.Builder() instance
         """
         struct = Structure.from_file(POSCAR)
@@ -648,13 +648,13 @@ class StructGen():
         """Translates the x-coordinate of the sites by "t". 
         Can also be thought of as shifting/sliding the unit cell boundary over a fixed lattice
         
-        Parameters:
-        -----------
+        Parameters
+        ----------
         t = float 
             offset, default = lx/2.0 
         
-        Returns: 
-        ---------- 
+        Returns 
+        ------- 
             kwant.Builder() instance
         """
         if t is None: 
@@ -692,7 +692,7 @@ class StructGen():
         Returns the polarization of the geometry corresponding to the curent 
         state of the random structure generator
         
-        Returns: 
+        Returns 
         -------
         
         pol: float 
@@ -722,7 +722,7 @@ class StructGen():
         so it is symmetric. 
    
         
-        Returns: 
+        Returns 
         ------- 
         adjMat: numpy array 
                 Symmetric Adjacency matrix 
@@ -768,13 +768,13 @@ class StructGen():
         Construct a directed graph from the kwant system. The direction of the 
         graph is from left to right (increasing x). 
         
-        Parameters: 
-        -----------
+        Parameters 
+        ----------
         draw: boolean 
             If true, outputs visualization of the graph 
         
-        Returns: 
-        --------
+        Returns 
+        -------
         G : nx.DiGraph instance 
             Graph of the kwant system
         """
@@ -804,7 +804,7 @@ class StructGen():
         """
         Draws the kwant system accroding to the position of the sites
         
-        Returns: 
+        Returns 
         -------
         None 
         """
@@ -831,7 +831,7 @@ class StructGen():
         Find the shortest simple paths from the left end of the unit cell to 
         the right end for each bond crossing the unit cell 
         
-        Retruns: 
+        Returns 
         -------
         paths: dict 
                 key: index of head, index of tail 

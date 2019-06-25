@@ -1,0 +1,5 @@
+setup.py
+src/TopoQuest.egg-info/PKG-INFO
+src/TopoQuest.egg-info/SOURCES.txt
+src/TopoQuest.egg-info/dependency_links.txt
+src/TopoQuest.egg-info/top_level.txt
