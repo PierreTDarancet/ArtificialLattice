@@ -713,8 +713,47 @@ class StructGen():
     
     def plot_syst(self): 
         kwant.plot(self.syst)
+        
+    def _get_bands(self,momenta=(-np.pi,np.pi)): 
+        bands = kwant.physics.Bands(self.syst.finalized())
+        momenta = np.linspace(momenta[0],momenta[1],101)
+        eigs = [bands(k,return_eigenvectors=True) for k in momenta]
+        return eigs 
     
+    def _get_density(self): 
+        eigs = self._get_bands() 
+        eigvals,eigvecs = zip(*eigs)
+        eigvecs = np.array(eigvecs)
+        nbands = len(eigvals)
+        n_occupied_bands = int(nbands/2)
+        k_sum_states = np.sum(eigvecs[:,:,:],axis=0) # numbands = numbasis 
+        sum_states = np.sum(k_sum_states[:,:n_occupied_bands],axis=1)
+        density = abs(sum_states[:]**2)
+        return density
+        
+        
+    def _1D_to_finite(self): 
+        pos_lattice = np.array(self._get_site_pos())
+        syst = kwant.Builder()
+        def check_sites(pos):
+            x,y = pos 
+            for test_site in pos_lattice: 
+                diff_x = abs(test_site[0]-x)
+                diff_y = abs(test_site[1]-y)
+                if diff_x < 1.0e-3 and diff_y < 1.0e-3 :
+                    return True 
+            return False
+            
+        syst[self.lat.shape(check_sites,(0,0))]=self.onsite
+        syst[self.lat.neighbors()]=self.hop 
+        return syst.finalized() 
+    
+    def _plot_density(self): 
+        density = self._get_density()
+        fig = kwant.plotter.density(self._1D_to_finite(),density,relwidth=0.08,cmap='jet',background='white')#,oversampling=12);
+        #return fig
 
+        
     def get_adjacency(self): 
         """ 
         Returns the Adjacency Matrix.
