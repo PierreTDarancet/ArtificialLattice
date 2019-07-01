@@ -728,10 +728,48 @@ class StructGen():
         n_occupied_bands = int(nbands/2)
         k_sum_states = np.sum(eigvecs[:,:,:],axis=0) # numbands = numbasis 
         sum_states = np.sum(k_sum_states[:,:n_occupied_bands],axis=1)
-        density = abs(sum_states[:]**2)
+        #sum_states = np.sum(k_sum_states[:,:],axis=1)
+        density = np.absolute(sum_states)
+        print(density)
         return density
+    
+    def _get_density2(self): 
+        eigs = self._get_bands() 
+        eigvals,eigvecs = zip(*eigs)
+        eigvecs = np.array(eigvecs)
+        nbands = len(eigvals)
+        n_occupied_bands = int(nbands/2)
+        nbasis = np.shape(eigvecs)[-1]
+        coefficients = np.zeros([nbasis])
+        for k in range(len(eigvecs)): 
+            states = np.absolute(eigvecs[k,:,:n_occupied_bands])
+            sum_states = np.zeros([nbasis])
+            for i in range(n_occupied_bands):
+                sum_states += states[:,i]/np.sum(states[:,i])
+            coefficients += sum_states/(len(eigvecs)*n_occupied_bands)
+        #k_sum_states = np.sum(eigvecs[:,:,:],axis=0) # numbands = numbasis 
+        #sum_states = np.sum(k_sum_states[:,:n_occupied_bands],axis=1)
+        #sum_states = np.sum(k_sum_states[:,:],axis=1)
+        #density = np.absolute(sum_states)
+        print(coefficients)
+        print(sum(coefficients))
+        return coefficients     
         
-        
+    
+    def _get_density3(self): 
+        eigs = self._get_bands() 
+        eigvals,eigvecs = zip(*eigs)
+        eigvecs = np.array(eigvecs)
+        nbands = len(eigvals)
+        n_occupied_bands = int(nbands/2)
+        nbasis = np.shape(eigvecs)[-1]
+        rho = kwant.operator.Density(self.syst.finalized())
+        s = np.zeros([nbasis])
+        for i in range(len(eigvecs)): 
+            for j in range(n_occupied_bands): 
+               s = rho(eigvecs[i,:,j])
+        return s
+     
     def _1D_to_finite(self): 
         pos_lattice = np.array(self._get_site_pos())
         syst = kwant.Builder()
@@ -749,8 +787,8 @@ class StructGen():
         return syst.finalized() 
     
     def _plot_density(self): 
-        density = self._get_density()
-        fig = kwant.plotter.density(self._1D_to_finite(),density,relwidth=0.08,cmap='jet',background='white')#,oversampling=12);
+        density = self._get_density3()
+        fig = kwant.plotter.density(self._1D_to_finite(),density, relwidth=0.08,cmap='jet',background='white')#,oversampling=12);
         #return fig
 
         

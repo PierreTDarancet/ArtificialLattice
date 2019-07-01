@@ -14,7 +14,7 @@ Zigzag = kwant.lattice.general([[np.sqrt(3)/3,0],[0,1]], #Lattice vectors
                                      [[0,1/6],[np.sqrt(3)/2,2/6],[np.sqrt(3)/2,4/6],[0,5/6]])
 
 Armchair = kwant.lattice.general([[1,0],[0,np.sqrt(3)/3.0]], #Lattice vectors
-                                     [[1/6,0],[2/6,np.sqrt(3)/2],[4/6,np.sqrt(3)/2],[5/6,0]])
+                                     [[1/6,0],[2/6,np.sqrt(3)/2],[4/6,np.sqrt(3)/2],[5/6,0]],norbs=1)
 
 Armchair_trans = kwant.lattice.general([[1,0],[0,np.sqrt(3)/3.0]], #Lattice vectors
                                     [[1/6,0],[2/6,-1*np.sqrt(3)/2],[4/6,-1*np.sqrt(3)/2],[5/6,0]])
