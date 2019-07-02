@@ -6,24 +6,46 @@ import scipy.linalg as la
 import kwant
 import functools
 
-graphene = kwant.lattice.general([[np.sqrt(3)/2,1/2],[np.sqrt(3)/2,-1/2]],  #Lattice vectors 
-                                  [[0,0],[1/np.sqrt(3),0]]) # Co-ordinates
-a,b = graphene.sublattices 
+lattices = {   'graphene': kwant.lattice.general([[np.sqrt(3)/2,1/2],[np.sqrt(3)/2,-1/2]],  #Lattice vectors 
+                            [[0,0],[1/np.sqrt(3),0]],norbs=1), # Co-ordinates
 
-Zigzag = kwant.lattice.general([[np.sqrt(3)/3,0],[0,1]], #Lattice vectors
-                                     [[0,1/6],[np.sqrt(3)/2,2/6],[np.sqrt(3)/2,4/6],[0,5/6]])
+                'Zigzag': kwant.lattice.general([[np.sqrt(3)/3,0],[0,1]], #Lattice vectors
+                            [[0,1/6],[np.sqrt(3)/2,2/6],[np.sqrt(3)/2,4/6],[0,5/6]],norbs=1),
+                            
 
-Armchair = kwant.lattice.general([[1,0],[0,np.sqrt(3)/3.0]], #Lattice vectors
-                                     [[1/6,0],[2/6,np.sqrt(3)/2],[4/6,np.sqrt(3)/2],[5/6,0]],norbs=1)
+                'Armchair': kwant.lattice.general([[1,0],[0,np.sqrt(3)/3.0]], #Lattice vectors
+                            [[1/6,0],[2/6,np.sqrt(3)/2],[4/6,np.sqrt(3)/2],[5/6,0]],norbs=1),
 
-Armchair_trans = kwant.lattice.general([[1,0],[0,np.sqrt(3)/3.0]], #Lattice vectors
-                                    [[1/6,0],[2/6,-1*np.sqrt(3)/2],[4/6,-1*np.sqrt(3)/2],[5/6,0]])
+                'Armchair_trans': kwant.lattice.general([[1,0],[0,np.sqrt(3)/3.0]], #Lattice vectors
+                            [[1/6,0],[2/6,-1*np.sqrt(3)/2],[4/6,-1*np.sqrt(3)/2],[5/6,0]],norbs=1),
 
+                'Lieb': kwant.lattice.general([[1,0],[0,1]],  #Lattice vectors
+                        [[0,0],[0.5,0],[0,0.5]],norbs=1), # Coordinates of the sites
 
-lat_dict = {'armchair':Armchair,'zigzag':Zigzag,
-            'armchair_trans':Armchair_trans}
-trans_vec_dict = {'armchair':Armchair.prim_vecs[0],'zigzag':Zigzag.prim_vecs[1],
-                  'armchair_trans':Armchair_trans.prim_vecs[0]}
+                'Kagome': kwant.lattice.general([[1,0],[0,np.sqrt(3)]],
+                        [[0,0],[0.5,0],[1/4,np.sqrt(3)/4],[0,np.sqrt(3)/2],
+                         [0.5,np.sqrt(3)/2],[3/4,3*np.sqrt(3)/4]],norbs=1),
+
+                'Square': kwant.lattice.square()
+                }
+
+n_atoms_along_x = {'Zigzag':2,'Armchair':4,'Armchair_trans':4,'Lieb':2,'Kagome':2, 
+                   'Square':1}
+n_atoms_along_y = {'Zigzag':4,'Armchair':2,'Armchair_trans':2,'Lieb':2,'Kagome':4, 
+                   'Square':1}
+
+graphene= kwant.lattice.general([[np.sqrt(3)/2,1/2],[np.sqrt(3)/2,-1/2]],  #Lattice vectors 
+                            [[0,0],[1/np.sqrt(3),0]],norbs=1), # Co-ordinates
+Zigzag= kwant.lattice.general([[np.sqrt(3)/3,0],[0,1]], #Lattice vectors
+                            [[0,1/6],[np.sqrt(3)/2,2/6],[np.sqrt(3)/2,4/6],[0,5/6]],norbs=1),
+
+Armchair= kwant.lattice.general([[1,0],[0,np.sqrt(3)/3.0]], #Lattice vectors
+            [[1/6,0],[2/6,np.sqrt(3)/2],[4/6,np.sqrt(3)/2],[5/6,0]],norbs=1),
+
+#lat_dict = {'armchair':Armchair,'zigzag':Zigzag,
+#            'armchair_trans':Armchair_trans}
+#trans_vec_dict = {'armchair':Armchair.prim_vecs[0],'zigzag':Zigzag.prim_vecs[1],
+#                  'armchair_trans':Armchair_trans.prim_vecs[0]}
 
 def momentum_to_lattice(k):
     """Transform momentum to the basis of reciprocal lattice vectors.
@@ -76,21 +98,27 @@ def hopping_lw(syst):
         else:
             return 0.15
     return functools.partial(hopping_lw_by_overlap,syst=syst)
+   
     
+def _find_lattice(lat): 
+    for key in lattices: 
+        if lat == lattices[key]:
+            return key 
+    print('Given lattice not found in lattices dictionary')
+    return None 
 
 def get_width(N,lat):
-    num_c_atoms_per_cell = {Armchair:2,Zigzag:4,
-                            Armchair_trans:2} 
-
-    return float((N/num_c_atoms_per_cell[lat]))*lat.prim_vecs[1][1]
+    lattype = _find_lattice(lat)
+    num_c_atoms_per_cell = n_atoms_along_y[lattype]
+    return float((N/num_c_atoms_per_cell))*lat.prim_vecs[1][1]
 
 def get_length(L,lat):
-    num_c_atoms_per_cell = {Armchair:4,Zigzag:2,
-                            Armchair_trans:4}
+    lattype = _find_lattice(lat)
+    num_c_atoms_per_cell = n_atoms_along_x[lattype]
     if L < 2:
         raise("L cannot be less than 2")
     else:
-        return (L/num_c_atoms_per_cell[lat])*lat.prim_vecs[0][0]
+        return (L/num_c_atoms_per_cell)*lat.prim_vecs[0][0]
 
 
 def translate(pos,t,N,L):
@@ -142,15 +170,15 @@ def make_zigzag_ribbon(N=7, L = 5):
     return Z_ribbon
 
 
-def make_1D_cell(N=7,edge='armchair',offset=0):
-    lat = lat_dict[edge] 
-    trans_vec = trans_vec_dict[edge]
-    syst = kwant.Builder(kwant.TranslationalSymmetry(trans_vec))
+#def make_1D_cell(N=7,edge='armchair',offset=0):
+#    lat = lat_dict[edge] 
+#    trans_vec = trans_vec_dict[edge]
+#    syst = kwant.Builder(kwant.TranslationalSymmetry(trans_vec))
     #syst= kwant.Builder()
-    syst[lat.shape((lambda pos: pos[1] >= offset and 
-                    pos[1] < get_width(N,lat)+offset),(0,0))] = 0
-    syst[lat.neighbors()] = -1
-    return syst
+#    syst[lat.shape((lambda pos: pos[1] >= offset and 
+#                    pos[1] < get_width(N,lat)+offset),(0,0))] = 0
+#    syst[lat.neighbors()] = -1
+#    return syst
 
 
 def make_cove_edged_graphene(N=10,L=6):
