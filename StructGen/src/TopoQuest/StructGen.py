@@ -7,6 +7,7 @@ Created on Mon Mar 18 16:27:19 2019
 """
 #from helper import *
 from .utilities import lattices,get_width
+from .dump import dump 
 from pymatgen.io.lammps.data import LammpsData 
 from pymatgen import Lattice, Structure
 from math import floor,ceil,copysign
@@ -15,7 +16,7 @@ import kwant,z2pack
 import cmath,random,operator 
 import numpy as np 
 import networkx as nx 
-import networkx.algorithms.isomorphism as iso
+#import networkx.algorithms.isomorphism as iso
 import itertools
 import copy
 
@@ -153,7 +154,7 @@ class StructGen():
     """
     
     def __init__(self,lat='graphene',nlx=5,
-                 nly= 5,onsite=0,hop=-1,syst=None): 
+                 nly= 5,onsite=0,hop=-1,syst=None,dumpfile=None): 
         self.lat = lattices[lat]
         self.lx  = nlx*self.lat.prim_vecs[0][0]
         self.ly  = nly*self.lat.prim_vecs[1][1]
@@ -169,6 +170,14 @@ class StructGen():
         self.mirror_sym_pairs = None 
         self._set_full_syst_attributes()
         self.graph = None 
+        
+        if dumpfile:
+            self.dumpfile = dumpfile 
+            global d 
+            d = dump(filename=dumpfile)
+        else: 
+            self.dumpfile = False
+            
         
     def _get_mirror_symmetric_pairs(self): 
         mirror_plane = self.lx/2.0
@@ -232,50 +241,7 @@ class StructGen():
     def fill_all_sites(self): 
         full_syst=self._make_full_syst() 
         self.syst = full_syst
-        
-    def from_lmpdata(self,data):
 
-
-        lmpdata = LammpsData.from_file(data)
-        struct = lmpdata.structure
-        topo = lmpdata.topology
-        atoms = lmpdata.atoms
-        bonds = topo['Bonds']
-        nbonds = len(bonds)
-        [a,b,c] = struct.lattice._matrix
-        vec1 = [a[0],a[1]]
-        vec2 = [b[0]*2,b[1]*2]
-        pos = []
-
-        
-        for i in range(1,len(atoms)+1): 
-            x = atoms.loc[i,'x']
-            y = atoms.loc[i,'y']
-            pos.append([x,y])
-        pos = np.array(pos)
-        max_y = np.max(pos[:,1])
-        lat = kwant.lattice.general([vec1,vec2],pos)
-        syst = kwant.Builder(kwant.TranslationalSymmetry(vec1))
-        syst[lat.shape((lambda pos: 0<=pos[1]<= max_y),(0,0))]=self.onsite
-        self.lat = lat
-        self.lx = a[0]
-        self.ly = max_y+0.5
-        
-        for i in range(1,nbonds+1): 
-            at1 = atoms.loc[bonds.loc[i,'atom1']]
-            at2 = atoms.loc[bonds.loc[i,'atom2']]
-            x1,y1 = at1['x'],at1['y']
-            x2,y2 = at2['x'],at2['y']
-            site1 = syst.closest([x1,y1])
-            site2 = syst.closest([x2,y2])
-            syst[site1,site2] = self.hop
-        syst[lat.neighbors()] = self.hop
-        syst[lat.neighbors(2)] = self.hop
-        syst[lat.neighbors(3)] = self.hop
-        self.syst = syst 
-        return syst 
-        #min_x = np.min(pos[:,0])
-        #max_x = np.min(pos[:,0])
         
     def _construct_full_graph(self,draw=False): 
               
@@ -581,6 +547,29 @@ class StructGen():
             None 
         """
         self.syst=syst
+        
+    def syst2dump(self,frame=0): 
+        if self.dumpfile:
+            l = Lattice.from_lengths_and_angles([self.lx,self.ly,5.0],[90,90,90])
+            lammpsBox=[[0.0,l.matrix[0,0]],[0.0,l.matrix[1,1]],
+                       [0.0,l.matrix[2,2]]]
+            timestep = frame 
+            atoms_data={} 
+            pos = self._get_site_pos()
+            natoms = len(pos)
+            z = np.zeros(natoms)
+            id_col = np.arange(1,natoms+1)
+            print(np.shape(id_col))
+            print(np.shape(pos)) 
+            print(np.shape(z))
+
+            atoms_data['attributes']=['id','x','y','z']
+            data = np.column_stack((id_col,pos,z))
+            atoms_data['data'] = data
+            d.write_frame(timestep,lammpsBox,natoms,atoms_data)
+        else: 
+            raise('StructGen was not declared with a dump file name')
+        
     
     def syst2poscar(self,filename='POSCAR'):
         """
