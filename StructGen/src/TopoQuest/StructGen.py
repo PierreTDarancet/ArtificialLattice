@@ -708,9 +708,9 @@ class StructGen():
         eigs = self._get_bands() 
         eigvals,eigvecs = zip(*eigs)
         eigvecs = np.array(eigvecs)
-        nbands = len(eigvals)
-        n_occupied_bands = int(nbands/2)
         nbasis = np.shape(eigvecs)[-1]
+        nbands = nbasis
+        n_occupied_bands = int(nbands/2)
         rho = kwant.operator.Density(self.syst.finalized())
         s = np.zeros([nbasis])
         for i in range(len(eigvecs)): 
