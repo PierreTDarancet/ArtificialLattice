@@ -12,6 +12,7 @@ class dump():
         self.f = open(self.filename,'w+')
         
     def write_frame(self,timestep,lammpsBox,natoms,atoms_data):
+        
         dump_string = ['ITEM: TIMESTEP'] 
         dump_string.append('{}'.format(timestep))
         dump_string.append('ITEM: NUMBER OF ATOMS')
@@ -30,3 +31,6 @@ class dump():
         dump_string += atom_string 
         self.f.write("\n".join(dump_string))
         self.f.write("\n")
+        
+
+            
