@@ -12,6 +12,7 @@ from pymatgen.io.lammps.data import LammpsData
 from pymatgen import Lattice, Structure
 from math import floor,ceil,copysign
 from operator import itemgetter
+from io import StringIO
 import kwant,z2pack
 import cmath,random,operator 
 import numpy as np 
@@ -569,7 +570,25 @@ class StructGen():
             d.write_frame(timestep,lammpsBox,natoms,atoms_data)
         else: 
             raise('StructGen was not declared with a dump file name')
-        
+    
+    def dump2syst(self,frame): 
+        def _read_frame(frame):
+            xbox,ybox =frame.split('\n',9)[-5:-3]
+            lx,ly = float(xbox.split()[-1]),float(ybox.split()[-1])
+            xy = np.loadtxt(StringIO(frame),skiprows=9,usecols=(1,2))
+            return [lx,ly,xy]
+        lx,ly,xy = _read_frame(frame)
+        min_x = np.min(xy[:,0])
+        edge_sites = xy[xy[:,0]==min_x]
+        min_y = np.min(edge_sites[:,1])
+        xy[:,1] -= min_y
+        lat_y = 2*ly+2.0
+        lat = kwant.lattice.general([[lx,0],[0,lat_y]],xy)
+        syst = kwant.Builder(kwant.TranslationalSymmetry([lx,0]))
+        syst[lat.shape((lambda pos: 0 <= pos[1] < lat_y),(0,0))]= self.onsite
+        syst[lat.neighbors()] = self.hop
+        self.syst = syst 
+        return syst 
     
     def syst2poscar(self,filename='POSCAR'):
         """
@@ -588,6 +607,8 @@ class StructGen():
         pos = np.column_stack((pos,z)) 
         structure = Structure(l,['C']*nsites,pos,coords_are_cartesian=True)
         structure.to(fmt='poscar',filename=filename)
+                
+       
 
     def poscar2syst(self,POSCAR): 
         """
@@ -626,6 +647,7 @@ class StructGen():
         syst[self.lat.neighbors()]=self.hop 
         self.syst = syst
         return self.syst 
+  
     
         
     def translate_cell(self,t=None):  
