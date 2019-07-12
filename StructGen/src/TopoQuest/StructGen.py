@@ -177,8 +177,7 @@ class StructGen():
             global d 
             d = dump(filename=dumpfile)
         else: 
-            self.dumpfile = False
-            
+            self.dumpfile = False        
         
     def _get_mirror_symmetric_pairs(self): 
         mirror_plane = self.lx/2.0
@@ -203,35 +202,47 @@ class StructGen():
             return pos
         
     def _set_full_syst_attributes(self): 
-        full_syst = self._make_full_syst(uly=0)
-        pos = self._get_site_pos(syst=full_syst)
-        pos.sort(key=operator.itemgetter(0,1))
-        pos = np.array(pos)
+        self.full_syst = self._make_full_syst(uly=0)
         index_dict = {}
-        for i,site in enumerate(pos): 
-            index_dict[tuple(site)] =i
-        self.syst = full_syst
+        pos = np.array(sorted(self._get_site_pos(syst=self.full_syst),
+                     key=operator.itemgetter(0,1)))
         self.full_syst_pos = pos 
+        for i,site in enumerate(pos): 
+            index_dict[tuple(site)] =i 
         self.index_dict = index_dict
-        self.full_graph = self._construct_full_graph()
-        self.full_syst = full_syst
-        del full_syst 
-        self.syst = None
-        double_full_syst = self._make_full_syst(uly=-1*self.ly)
-        self.syst = double_full_syst
-        self.full_double_syst = double_full_syst
-        self.full_double_graph = self._construct_full_graph() 
-        del double_full_syst
-        self.syst = None
+        self.full_graph = self._construct_full_graph(syst=self.full_syst)
+        self.full_double_syst = self._make_full_syst(uly=-1*self.ly)
+        self.full_double_graph = self._construct_full_graph(self.full_double_syst)
+        self.syst = self.full_syst
         self.mirror_sym_pairs = self._get_mirror_symmetric_pairs()
-        
-    def _make_full_syst(self,uly): 
-        full_syst = kwant.Builder()
-        full_syst[self.lat.shape(
-                (lambda pos: 0<=pos[0]<=self.lx and uly<=pos[1]<=self.ly),
-                (0,0))] = self.onsite 
-        full_syst[self.lat.neighbors()] = self.hop
-        return full_syst
+        return None 
+    
+    def _make_full_syst(self,uly,trans_sym_direction='x'):
+        def _template():
+            syst = kwant.Builder()
+            syst[self.lat.shape((lambda pos: 0<=pos[0]<self.lx  \
+                and uly<=pos[1]<self.ly),(0,0))] = self.onsite 
+            syst[self.lat.neighbors()] = self.hop 
+            return syst
+        pos = self._get_site_pos(syst=_template())
+        if trans_sym_direction=='x':
+            a = self.lx
+            b = self.ly
+            trans_vec=[a,0]
+        elif trans_sym_direction=='y':
+            a = self.lx+0.1
+            b = self.ly
+            trans_vec=[0,b]
+        else:
+            raise #"Translation Symmetry direction should be 'x' or 'y'"
+        lattice_1D = kwant.lattice.general([[a,0],[0,b]],pos)
+        syst_1D = kwant.Builder(kwant.TranslationalSymmetry(trans_vec))
+        if trans_sym_direction=='x':
+            syst_1D[lattice_1D.shape((lambda pos: 0<= pos[1] < b),(0,0))]=self.onsite
+        if trans_sym_direction=='y':
+            syst_1D[lattice_1D.shape((lambda pos: 0<= pos[0] < a),(0,0))]=self.onsite
+        syst_1D[lattice_1D.neighbors()] = self.hop
+        return syst_1D
     
     def set_cell_attributes(self,nlx=5,nly=5,lat='Armchair'): 
         self.lat = lattices[lat]
@@ -243,9 +254,47 @@ class StructGen():
         full_syst=self._make_full_syst() 
         self.syst = full_syst
 
+
+    def _finite_to_1D(syst,lat_vec,trans_sym_direction='x'): 
+        """Adds a translational symmetry on a finite system
+        Useful for making complex geometries eg: cove-edged and chevron ribbon
+    
+        Parameters
+        ==========
+            system: instance of the finite system
+            lat_vec: lattice vector of the translational symmetry 
+            trans_sym_direction: 'x' or 'y' , direction of the translational symmetry
         
-    def _construct_full_graph(self,draw=False): 
-              
+        TODO: 
+            1. Currently only works for orthorhombic unit cells 
+            2. Get the onsite and hopping values directly from the passed system
+            Currently hard set inside the code"""
+
+        sites = list(syst.sites())
+        pos = [site.pos for site in sites]
+        if trans_sym_direction=='x':
+            a = lat_vec
+            b = max(np.array(pos)[:,1])+2.0
+            trans_vec=[a,0]
+        elif trans_sym_direction=='y':
+            a = max(np.array(pos)[:,0])+2.0
+            b = lat_vec
+            trans_vec=[0,b]
+        else:
+            raise #"Translation Symmetry direction should be 'x' or 'y'"
+        lattice_1D = kwant.lattice.general([[a,0],[0,b]],pos)
+        syst_1D = kwant.Builder(kwant.TranslationalSymmetry(trans_vec))
+        if trans_sym_direction=='x':
+            syst_1D[lattice_1D.shape((lambda pos: 0< pos[1] <= b),(0,0))]=0
+        if trans_sym_direction=='y':
+            syst_1D[lattice_1D.shape((lambda pos: 0< pos[0] <= a),(0,0))]=0
+        syst_1D[lattice_1D.neighbors()] = -1
+        return syst_1D
+
+        
+    def _construct_full_graph(self,draw=False,syst=None):
+        if not syst: 
+            syst = self.syst
         G = nx.Graph()
         for hopping,value in self.syst.hopping_value_pairs():
             u,v = hopping
@@ -262,8 +311,6 @@ class StructGen():
         return nx.has_path(G,head,tail)
     
     def swap_move(self):
-        
-        
         edge_sites = []
         for site in self.syst.sites(): 
             if self.syst.degree(site)<3:
@@ -273,7 +320,6 @@ class StructGen():
             if nx.shortest_path_length(self.full_double_graph,s,t) <7:
                 possible_head_tails.append([s,t])
                 
-
         def _add_ring(paths):
             pos = np.array(self._get_site_pos())
             ymin,ymax = np.min(pos[:,1]),np.max(pos[:,1])
@@ -319,7 +365,7 @@ class StructGen():
                         path_exist.append(path)      
             if not path_exist: 
                 return False 
-            elif len(path_exist) > 1: 
+            elif len(path_exist) > 1:
                 print("Removing rings")        
                 remove_path = random.choice(path_exist)
                 symmetric_duplicates = []
@@ -339,9 +385,9 @@ class StructGen():
                     self.syst = copy.deepcopy(temp_syst) 
                     del temp_syst
                     return False 
-                try:
-                    if self._is_continous():
-                        return True
+
+                if self._is_continous():
+                    return True
                 except: 
                     self.random_mirror_symmetric() 
                     return True 
@@ -353,7 +399,6 @@ class StructGen():
                 return False
 
         moved = False 
-       
         rand = random.uniform(0,1)
         if rand < 0.5: 
             move = _add_ring 
@@ -365,16 +410,12 @@ class StructGen():
             [s,t] = random.choice(possible_head_tails)
             paths = nx.all_simple_paths(self.full_double_graph,s,t,cutoff=5)          
             moved = move(paths)
-            if ntrail > 100:
+            if ntrail > 10000:
                 self.random_mirror_symmetric()
                 if move == _add_ring:
                     move = _remove_ring
                 else: 
-                    move = _add_ring
-            #if moved == False:
-                #print(s.pos,t.pos)
-                #print(self.full_double_graph.nodes[s],self.full_double_graph.nodes[t])
-        
+                    move = _add_ring        
      
     def _get_random_2pts(self,L,w): 
         """ Used internally for randomly choosing 2pts so 
@@ -416,9 +457,7 @@ class StructGen():
         
         ypt11,ypt12 = self._get_random_2pts(self.ly,min_width)
         ypt11,ypt12 = min(ypt11,ypt12),max(ypt11,ypt12)
-        PTS1 = [[0,ypt11],[0,ypt12]]
-
-                
+        PTS1 = [[0,ypt11],[0,ypt12]]                
         ypt21,ypt22 = self._get_random_2pts(rect_L_plus_W,min_width)
         ypt21,ypt22 = min(ypt21,ypt22),max(ypt21,ypt22)
         PTS2=[]
@@ -426,8 +465,7 @@ class StructGen():
             if pt > self.ly:
                 PTS2.append([self.lx/2.0+self.ly-pt,self.ly])
             else: 
-                PTS2.append([self.lx/2.0,pt])
-            
+                PTS2.append([self.lx/2.0,pt])            
         PTS2 = sorted(PTS2,key=lambda x: x[0],reverse = True)
         if abs(PTS2[0][0] - PTS2[1][0]) < 1.e-4: 
             PTS2 = sorted(PTS2,key=lambda x: x[1])
@@ -437,7 +475,7 @@ class StructGen():
         
         lineCoeff2 =  np.polyfit([PTS1[1][0],PTS2[1][0]],
                                      [PTS1[1][1],PTS2[1][1]],1)
-            #offset = (lineCoeff1[1]+lineCoeff2[1])/2
+        
         offset = lineCoeff1[1]
         lineCoeff1[1] -= offset 
         lineCoeff2[1] -= offset
@@ -493,7 +531,6 @@ class StructGen():
         if ypt12-ypt11 < min_width: 
             short_by = min_width - abs(ypt11)-abs(ypt12)
             ypt11 += -1*abs(short_by)
-        #ypt11,ypt12 = min(ypt11,ypt12),max(ypt11,ypt12)
         PTS1 = [[0,ypt11],[0,ypt12]]
         ypt21,ypt22 = _get_randsym_2pts(rect_L_plus_W,min_width)
         ypt21,ypt22 = min(ypt21,ypt22),max(ypt21,ypt22)
@@ -513,10 +550,6 @@ class StructGen():
         
         lineCoeff2 =  np.polyfit([PTS1[1][0],PTS2[1][0]],
                                      [PTS1[1][1],PTS2[1][1]],1)
-            #offset = (lineCoeff1[1]+lineCoeff2[1])/2
-        #offset = lineCoeff1[1]
-        #lineCoeff1[1] -= offset 
-        #lineCoeff2[1] -= offset
         
         syst = kwant.Builder(kwant.TranslationalSymmetry([self.lx,0]))
         syst[self.lat.shape((lambda pos: _shape_from_lines(pos,
@@ -759,8 +792,6 @@ class StructGen():
     def _plot_density(self): 
         density = self._get_density()
         fig = kwant.plotter.map(self._1D_to_finite(),density,oversampling=50)
-        # relwidth=0.08,cmap='jet',background='white')#,oversampling=12);
-
         
     def get_adjacency(self): 
         """ 
@@ -887,7 +918,6 @@ class StructGen():
         if self.graph is None: 
             G=self.construct_graph()
         edge_connections = self._find_edge_connections()
-        #print(edge_connections)
         paths = {}
         for connection in edge_connections:
             short_paths = []
