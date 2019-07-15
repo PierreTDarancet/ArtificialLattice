@@ -129,6 +129,7 @@ class Check_redundant():
             sites = frozenset(site for site in list(syst.sites()))
             if sites in self.seen_lat: 
                 print("Redundant structure identified")
+                kwant.plot(syst)
                 return True 
             else: 
                 self.seen_lat.add(sites)
@@ -162,15 +163,17 @@ class StructGen():
         self.onsite = onsite
         self.hop = hop
         self.syst = syst
-        self.full_syst_pos = None 
+        self.full_double_syst_pos = None
         self.index_dict = None 
         self.full_graph = None
         self.full_double_graph = None 
         self.full_syst = None
         self.full_double_syst = None 
         self.mirror_sym_pairs = None 
+        self.full_syst_lat = None 
         self._set_full_syst_attributes()
         self.graph = None 
+        
         
         if dumpfile:
             self.dumpfile = dumpfile 
@@ -195,25 +198,25 @@ class StructGen():
                                                 
     def _get_site_pos(self,syst=None):
         if syst is None:
-            pos = np.array([site.pos for site in list(self.syst.sites())]).tolist()
+            pos = [site.pos for site in list(self.syst.sites())]
             return pos
         else: 
-            pos = np.array([site.pos for site in list(syst.sites())]).tolist()
+            pos = [site.pos for site in list(syst.sites())]
             return pos
         
     def _set_full_syst_attributes(self): 
         self.full_syst = self._make_full_syst(uly=0)
-        index_dict = {}
-        pos = np.array(sorted(self._get_site_pos(syst=self.full_syst),
+        self.full_graph = self._construct_full_graph(syst=self.full_syst)
+        self.full_double_syst = self._make_full_syst(uly=-1*self.ly) 
+        pos = np.array(sorted(self._get_site_pos(syst=self.full_double_syst),
                      key=operator.itemgetter(0,1)))
-        self.full_syst_pos = pos 
+        index_dict = {}
         for i,site in enumerate(pos): 
             index_dict[tuple(site)] =i 
         self.index_dict = index_dict
-        self.full_graph = self._construct_full_graph(syst=self.full_syst)
-        self.full_double_syst = self._make_full_syst(uly=-1*self.ly)
+        self.full_double_syst_pos = pos
         self.full_double_graph = self._construct_full_graph(syst=self.full_double_syst)
-        self.syst = self.full_syst
+        self._fill_all_sites()
         #self.graph = self.construct_graph()
         self.mirror_sym_pairs = self._get_mirror_symmetric_pairs()
         return None 
@@ -237,6 +240,7 @@ class StructGen():
         else:
             raise #"Translation Symmetry direction should be 'x' or 'y'"
         lattice_1D = kwant.lattice.general([[a,0],[0,b]],pos)
+        self.full_syst_lat = lattice_1D
         syst_1D = kwant.Builder(kwant.TranslationalSymmetry(trans_vec))
         if trans_sym_direction=='x':
             syst_1D[lattice_1D.shape((lambda pos: uly<= pos[1] < self.ly),(0,0))]=self.onsite
@@ -251,7 +255,7 @@ class StructGen():
         self.ly = nly*self.lat.prim_vecs[1][1] 
         self._set_full_syst_attributes() 
     
-    def fill_all_sites(self): 
+    def _fill_all_sites(self): 
         full_syst=self._make_full_syst() 
         self.syst = full_syst
 
@@ -307,9 +311,16 @@ class StructGen():
     def _is_continous(self): 
         G = self.construct_graph() 
         graph_xlist = [node for node in G.nodes('x')]
-        graph_xlist = sorted(graph_xlist,key=itemgetter(1))
+        graph_xlist.sort(key=itemgetter(1))
         head,tail = graph_xlist[0][0],graph_xlist[-1][0]
-        return nx.has_path(G,head,tail)
+        is_cluster = nx.has_path(G,head,tail)
+        tailx=graph_xlist[-1][1] 
+        head_neigh = G.neighbors(head)
+        is_continous = False
+        for node in head_neigh: 
+            if abs(G.nodes[node]['x']-tailx) < 1.e-3: 
+                is_continous = True
+        return is_cluster and is_continous
     
     def swap_move(self):
         edge_sites = []
@@ -322,6 +333,8 @@ class StructGen():
                 possible_head_tails.append([s,t])
                 
         def _add_ring(paths):
+            width = 0
+            temp_syst = copy.deepcopy(self.syst) 
             pos = np.array(self._get_site_pos())
             ymin,ymax = np.min(pos[:,1]),np.max(pos[:,1])
             path_not_exist = []
@@ -339,24 +352,23 @@ class StructGen():
                 print("Adding rings")
                 add_path = random.choice(path_not_exist)
                 for site in add_path:
-                    ysite = site.pos[1]
-                    if max([abs(ymin-ysite),abs(ymax-ysite)]) > self.ly:
-                        print("Add site exceeds box contrains")
-                        return False 
-                for site in add_path:
+                    ysite = site.pos[1] 
+                    w = max([abs(ymin-ysite),abs(ymax-ysite)])
+                    width = max(width,w)
+                    if width > self.ly: 
+                        self.syst = copy.deepcopy(temp_syst) 
+                        del temp_syst
+                        return False
+                    else: 
                         self.syst[site] = self.onsite 
                         self.syst[self.mirror_sym_pairs[site]] = self.onsite
-                self.syst[self.lat.neighbors()] = self.hop
+                self.syst[self.full_syst_lat.neighbors()] = self.hop
                 return True
         
         def _remove_ring(paths): 
-            
-            # Creating a temp copy in case something goes wrong during the 
-            # ring removal processs
             temp_syst = copy.deepcopy(self.syst) 
             path_exist = []
             for path in paths: 
-                print(len(path))
                 if len(path) <7: 
                     site_exist_in_path = True 
                     for site in path: 
@@ -376,10 +388,10 @@ class StructGen():
                 for site in symmetric_duplicates: 
                     remove_path.remove(site)
                 for site in remove_path: 
-                    print(site.pos)
+                    #print(site.pos)
                     del self.syst[site]  
                     del self.syst[self.mirror_sym_pairs[site]]
-                    kwant.plot(self.syst)
+                    #kwant.plot(self.syst)
 
                 try: 
                     self.syst.eradicate_dangling()
@@ -391,13 +403,9 @@ class StructGen():
 
                 if self._is_continous():
                     return True
-                #except: 
-                #    self.random_mirror_symmetric() 
-                #    return True 
                 else: 
                     self.syst = copy.deepcopy(temp_syst) 
                     del temp_syst
-                    self.draw_lattice_graph()
                     print("Continue fail")
                     return False 
             else: 
@@ -454,7 +462,7 @@ class StructGen():
                     val1 = np.polyval(lineCoeff1,abs(self.lx-x))
                     val2 = np.polyval(lineCoeff2,abs(self.lx-x))
                 
-                if 0.0<=y+offset<self.ly and  0<=x<self.lx:    
+                if 0.0<=y-offset<self.ly and  0<=x<self.lx:    
                     if val1<=y<=val2: 
                         return True 
                     else: 
@@ -598,10 +606,7 @@ class StructGen():
             natoms = len(pos)
             z = np.zeros(natoms)
             id_col = np.arange(1,natoms+1)
-            print(np.shape(id_col))
-            print(np.shape(pos)) 
-            print(np.shape(z))
-
+            print("Writing frame {} to dump file".format(frame))
             atoms_data['attributes']=['id','x','y','z']
             data = np.column_stack((id_col,pos,z))
             atoms_data['data'] = data
@@ -811,21 +816,24 @@ class StructGen():
                 Symmetric Adjacency matrix 
 
         """ 
-        nmax_sites = len(self.full_syst_pos)
+        nmax_sites = len(self.full_double_syst_pos)
         adjMat = np.zeros((nmax_sites,nmax_sites))   
-        
         pos = np.array(self._get_site_pos())
         ymin = np.min(pos[:,1]) 
-        offset = copysign(1,ymin)*ceil(abs(ymin)/self.lat.prim_vecs[1][1])*self.lat.prim_vecs[1][1]
+        #print(ymin)
+        #offset = copysign(1,ymin)*ceil(abs(ymin)/self.lat.prim_vecs[1][1])*self.lat.prim_vecs[1][1]
                 
         def _get_index(site):
             x,y = site 
+            # Remap the sites outsite the box (images) to the corresponding
+            # sites inside box 
             x -= floor(x/self.lx)*self.lx
-            y -= offset
-            for i,item in enumerate(self.full_syst_pos):
+            #y -= offset
+            for i,item in enumerate(self.full_double_syst_pos):
                 diff = abs(item[0]-x) + abs(item[1]-y)
                 if diff < 1.e-2:
                     return i
+            print(x,y)
             return None 
         
         def _is_inside_cell(site1,site2): 
@@ -870,8 +878,8 @@ class StructGen():
                 hop=1
             else: 
                 hop=-1
-            x1,y1 = self.full_syst_pos[i]
-            x2,y2 = self.full_syst_pos[j] 
+            x1,y1 = self.full_double_syst_pos[i]
+            x2,y2 = self.full_double_syst_pos[j] 
             G.add_node(i,x=x1,y=y1)
             G.add_node(j,x=x2,y=y2)
             if x1 < x2: 
@@ -902,7 +910,7 @@ class StructGen():
                 edge_color.append('black')
             elif edge[-1]['hop'] < 0: 
                 edge_color.append('red')
-        nx.draw_networkx(graph,pos=pos,edge_color=edge_color)
+        nx.draw_networkx(graph,pos=pos,edge_color=edge_color,node_size=30)
     
     def _find_edge_connections(self):
         edge_connections = []
