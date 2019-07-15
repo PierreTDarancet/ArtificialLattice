@@ -212,16 +212,17 @@ class StructGen():
         self.index_dict = index_dict
         self.full_graph = self._construct_full_graph(syst=self.full_syst)
         self.full_double_syst = self._make_full_syst(uly=-1*self.ly)
-        self.full_double_graph = self._construct_full_graph(self.full_double_syst)
+        self.full_double_graph = self._construct_full_graph(syst=self.full_double_syst)
         self.syst = self.full_syst
+        #self.graph = self.construct_graph()
         self.mirror_sym_pairs = self._get_mirror_symmetric_pairs()
         return None 
     
-    def _make_full_syst(self,uly,trans_sym_direction='x'):
+    def _make_full_syst(self,uly=0,trans_sym_direction='x'):
         def _template():
             syst = kwant.Builder()
             syst[self.lat.shape((lambda pos: 0<=pos[0]<self.lx  \
-                and uly<=pos[1]<self.ly),(0,0))] = self.onsite 
+                and 0<=pos[1]<self.ly),(0,0))] = self.onsite 
             syst[self.lat.neighbors()] = self.hop 
             return syst
         pos = self._get_site_pos(syst=_template())
@@ -238,7 +239,7 @@ class StructGen():
         lattice_1D = kwant.lattice.general([[a,0],[0,b]],pos)
         syst_1D = kwant.Builder(kwant.TranslationalSymmetry(trans_vec))
         if trans_sym_direction=='x':
-            syst_1D[lattice_1D.shape((lambda pos: 0<= pos[1] < b),(0,0))]=self.onsite
+            syst_1D[lattice_1D.shape((lambda pos: uly<= pos[1] < self.ly),(0,0))]=self.onsite
         if trans_sym_direction=='y':
             syst_1D[lattice_1D.shape((lambda pos: 0<= pos[0] < a),(0,0))]=self.onsite
         syst_1D[lattice_1D.neighbors()] = self.hop
@@ -296,11 +297,11 @@ class StructGen():
         if not syst: 
             syst = self.syst
         G = nx.Graph()
-        for hopping,value in self.syst.hopping_value_pairs():
+        for hopping,value in syst.hopping_value_pairs():
             u,v = hopping
             G.add_node(u,x=u.pos[0],y=u.pos[1]) 
-            G.add_node(v,x=v.pos[0],y=u.pos[1]) 
-            G.add_edge(u,v)
+            G.add_node(v,x=v.pos[0],y=v.pos[1]) 
+            G.add_edge(u,v,hop=value)
         return G 
         
     def _is_continous(self): 
@@ -378,22 +379,26 @@ class StructGen():
                     print(site.pos)
                     del self.syst[site]  
                     del self.syst[self.mirror_sym_pairs[site]]
+                    kwant.plot(self.syst)
 
                 try: 
                     self.syst.eradicate_dangling()
                 except: 
                     self.syst = copy.deepcopy(temp_syst) 
                     del temp_syst
+                    print("Eradicate fail")
                     return False 
 
                 if self._is_continous():
                     return True
-                except: 
-                    self.random_mirror_symmetric() 
-                    return True 
+                #except: 
+                #    self.random_mirror_symmetric() 
+                #    return True 
                 else: 
                     self.syst = copy.deepcopy(temp_syst) 
                     del temp_syst
+                    self.draw_lattice_graph()
+                    print("Continue fail")
                     return False 
             else: 
                 return False
@@ -878,7 +883,7 @@ class StructGen():
             self.draw_lattice_graph()
         return G 
 
-    def draw_lattice_graph(self): 
+    def draw_lattice_graph(self,graph=None): 
         """
         Draws the kwant system accroding to the position of the sites
         
@@ -886,16 +891,18 @@ class StructGen():
         -------
         None 
         """
+        if not graph: 
+            graph = self.construct_graph()
         pos = {}        
-        for node in self.graph.nodes(data=True):
+        for node in graph.nodes(data=True):
             pos[node[0]] = [node[-1]['x'],node[-1]['y']]
         edge_color=[]
-        for edge in self.graph.edges(data=True): 
+        for edge in graph.edges(data=True): 
             if edge[-1]['hop'] > 0: 
                 edge_color.append('black')
             elif edge[-1]['hop'] < 0: 
                 edge_color.append('red')
-        nx.draw_networkx(self.graph,pos=pos,edge_color=edge_color)
+        nx.draw_networkx(graph,pos=pos,edge_color=edge_color)
     
     def _find_edge_connections(self):
         edge_connections = []
