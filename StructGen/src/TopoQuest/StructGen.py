@@ -8,18 +8,15 @@ Created on Mon Mar 18 16:27:19 2019
 #from helper import *
 from .utilities import lattices,get_width
 from .dump import dump 
-from pymatgen.io.lammps.data import LammpsData 
 from pymatgen import Lattice, Structure
 from math import floor,ceil,copysign
 from operator import itemgetter
 from io import StringIO
-import kwant,z2pack
-import cmath,random,operator 
+import kwant,z2pack,cmath,random,operator,copy,itertools 
 import numpy as np 
 import networkx as nx 
+import matplotlib.pyplot as plt 
 #import networkx.algorithms.isomorphism as iso
-import itertools
-import copy
 
 def get_Hk(sys, args=(), momenta=65, file=None, *, params=None,dim=3):
     """Returns hamiltonian as a function of k. Modified from kwant's 
@@ -129,7 +126,6 @@ class Check_redundant():
             sites = frozenset(site for site in list(syst.sites()))
             if sites in self.seen_lat: 
                 print("Redundant structure identified")
-                kwant.plot(syst)
                 return True 
             else: 
                 self.seen_lat.add(sites)
@@ -462,7 +458,7 @@ class StructGen():
                     val1 = np.polyval(lineCoeff1,abs(self.lx-x))
                     val2 = np.polyval(lineCoeff2,abs(self.lx-x))
                 
-                if 0.0<=y-offset<self.ly and  0<=x<self.lx:    
+                if 0.0<=y+offset<self.ly and  0<=x<self.lx:    
                     if val1<=y<=val2: 
                         return True 
                     else: 
@@ -819,21 +815,23 @@ class StructGen():
         nmax_sites = len(self.full_double_syst_pos)
         adjMat = np.zeros((nmax_sites,nmax_sites))   
         pos = np.array(self._get_site_pos())
-        ymin = np.min(pos[:,1]) 
-        #print(ymin)
-        #offset = copysign(1,ymin)*ceil(abs(ymin)/self.lat.prim_vecs[1][1])*self.lat.prim_vecs[1][1]
-                
+        ymin,ymax = np.min(pos[:,1]),np.max(pos[:,1]) 
+        clearance = self.ly - (ymax-ymin)
+        if clearance <= 0: 
+            offset = copysign(1,clearance)*(ceil(abs(clearance)/self.lat.prim_vecs[1][1])+1)*self.lat.prim_vecs[1][1]
+        else: 
+            offset=0
         def _get_index(site):
             x,y = site 
             # Remap the sites outsite the box (images) to the corresponding
             # sites inside box 
             x -= floor(x/self.lx)*self.lx
-            #y -= offset
+            y += offset
             for i,item in enumerate(self.full_double_syst_pos):
                 diff = abs(item[0]-x) + abs(item[1]-y)
                 if diff < 1.e-2:
                     return i
-            print(x,y)
+            print('Matching node for {},{} not found in double_syst_graph'.format(x,y))
             return None 
         
         def _is_inside_cell(site1,site2): 
@@ -849,9 +847,9 @@ class StructGen():
             index_i = _get_index(site1.pos)
             index_j = _get_index(site2.pos)
             if _is_inside_cell(site1,site2):
-                adjMat[index_i,index_j]=1
+                if None not in [index_i,index_j]: adjMat[index_i,index_j]=1
             else: 
-                adjMat[index_i,index_j]=-1      
+                if None not in [index_i,index_j]: adjMat[index_i,index_j]=-1
         return adjMat.astype('int8')
 
     def construct_graph(self,draw=False): 
@@ -891,7 +889,7 @@ class StructGen():
             self.draw_lattice_graph()
         return G 
 
-    def draw_lattice_graph(self,graph=None): 
+    def draw_lattice_graph(self,graph=None,figsize=None): 
         """
         Draws the kwant system accroding to the position of the sites
         
@@ -905,12 +903,18 @@ class StructGen():
         for node in graph.nodes(data=True):
             pos[node[0]] = [node[-1]['x'],node[-1]['y']]
         edge_color=[]
+        width=[]
         for edge in graph.edges(data=True): 
             if edge[-1]['hop'] > 0: 
                 edge_color.append('black')
+                width.append(1.0)
             elif edge[-1]['hop'] < 0: 
                 edge_color.append('red')
-        nx.draw_networkx(graph,pos=pos,edge_color=edge_color,node_size=30)
+                width.append(0.5)
+        if figsize is None: 
+            figsize = (8,6)
+        nx.draw_networkx(graph,pos=pos,edge_color=edge_color,node_size=500,
+                         alpha=0.7,width=1.4,with_labels=False,linewidths=2.0)
     
     def _find_edge_connections(self):
         edge_connections = []

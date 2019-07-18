@@ -7,7 +7,7 @@ import networkx as nx
 #import random
 from TopoQuest.StructGen import StructGen,Check_redundant
 
-N = int(sys.argv[1])
+N = 10
 now = datetime.datetime.now() 
 Struct_Dir='./swap-'+str(now).split()[0]+'/'
 if not os.path.exists(Struct_Dir): 
@@ -28,13 +28,18 @@ def lines_sampling():
             swap_moves()
 
 def swap_moves(): 
-    ntrail_swap = 0 
+    ntrail_swap = 0
+    ntrail_lines = 0
+    gen.swap_move()
     while CR.is_redundant(gen.syst): 
         ntrail_swap +=1 
-        gen.swap_move()
         if ntrail_swap > 1000: 
-            print('lines sampling')
+            ntrail_lines +=1
+            if ntrail_lines > 100: 
+                gen._fill_all_sites()
             lines_sampling()
+        gen.swap_move()
+
 
 
 for n in range(N):
