@@ -7,7 +7,7 @@ import networkx as nx
 #import random
 from TopoQuest.StructGen import StructGen,Check_redundant
 
-N = 10
+N = 500
 now = datetime.datetime.now() 
 Struct_Dir='./swap-'+str(now).split()[0]+'/'
 if not os.path.exists(Struct_Dir): 

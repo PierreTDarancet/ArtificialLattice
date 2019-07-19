@@ -306,16 +306,24 @@ class StructGen():
         
     def _is_continous(self): 
         G = self.construct_graph() 
+        G_undir = G.to_undirected()
         graph_xlist = [node for node in G.nodes('x')]
         graph_xlist.sort(key=itemgetter(1))
-        head,tail = graph_xlist[0][0],graph_xlist[-1][0]
-        is_cluster = nx.has_path(G,head,tail)
-        tailx=graph_xlist[-1][1] 
+        head = graph_xlist[0][0]
+        tailx= graph_xlist[-1][1] 
         head_neigh = G.neighbors(head)
         is_continous = False
         for node in head_neigh: 
             if abs(G.nodes[node]['x']-tailx) < 1.e-3: 
                 is_continous = True
+        remove_edges = []
+        for edge in G_undir.edges(data=True): 
+            if edge[-1]['hop'] < 0: 
+                remove_edges.append([edge[0],edge[1]])
+        for edge in remove_edges: 
+            G_undir.remove_edge(edge[0],edge[1])
+        is_cluster = nx.is_connected(G_undir)
+        print(is_cluster,is_continous)
         return is_cluster and is_continous
     
     def swap_move(self):
@@ -325,7 +333,8 @@ class StructGen():
                 edge_sites.append(site)
         possible_head_tails = []
         for (s,t) in itertools.combinations(edge_sites,2):
-            if nx.shortest_path_length(self.full_double_graph,s,t) <7:
+            if nx.shortest_path_length(self.full_double_graph.to_undirected(),
+                                       s,t) <7:
                 possible_head_tails.append([s,t])
                 
         def _add_ring(paths):
@@ -400,6 +409,8 @@ class StructGen():
                 if self._is_continous():
                     return True
                 else: 
+                    kwant.plot(self.syst)
+                    self.draw_lattice_graph()
                     self.syst = copy.deepcopy(temp_syst) 
                     del temp_syst
                     print("Continue fail")
@@ -419,7 +430,7 @@ class StructGen():
             [s,t] = random.choice(possible_head_tails)
             paths = nx.all_simple_paths(self.full_double_graph,s,t,cutoff=5)          
             moved = move(paths)
-            if ntrail > 10000:
+            if ntrail > 100:
                 self.random_mirror_symmetric()
                 if move == _add_ring:
                     move = _remove_ring
