@@ -409,8 +409,8 @@ class StructGen():
                 if self._is_continous():
                     return True
                 else: 
-                    kwant.plot(self.syst)
-                    self.draw_lattice_graph()
+                    #kwant.plot(self.syst)
+                    #self.draw_lattice_graph()
                     self.syst = copy.deepcopy(temp_syst) 
                     del temp_syst
                     print("Continue fail")

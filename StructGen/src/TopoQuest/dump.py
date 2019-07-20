@@ -31,6 +31,6 @@ class dump():
         dump_string += atom_string 
         self.f.write("\n".join(dump_string))
         self.f.write("\n")
-        
+        self.f.flush() 
 
             
