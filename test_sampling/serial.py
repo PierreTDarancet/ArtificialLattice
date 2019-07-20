@@ -50,6 +50,8 @@ for n in range(N):
         #pos_double = gen._get_site_pos(syst=gen.full_double_syst)
         #nx.draw_networkx(gen.graph,pos=pos_gen)    
         #nx.draw_networkx(gen.full_double_graph,pos=pos_double)
+        gen.plot_syst()
+        gen.draw_lattice_graph()
         raise
     gen.syst2dump(frame=n)
 

@@ -323,16 +323,22 @@ class StructGen():
         for edge in remove_edges: 
             G_undir.remove_edge(edge[0],edge[1])
         is_cluster = nx.is_connected(G_undir)
-        print(is_cluster,is_continous)
         return is_cluster and is_continous
     
     def swap_move(self):
         edge_sites = []
         for site in self.syst.sites(): 
             if self.syst.degree(site)<3:
-                edge_sites.append(site)
+                edge_sites.append(site.pos)
+        node_list = []
+        for site in edge_sites:
+            x,y = site
+            for node in self.full_double_graph.nodes(data=True): 
+                if np.isclose(node[-1]['x'],x) and np.isclose(node[-1]['y'],y): 
+                    node_list.append(node[0])
+                    
         possible_head_tails = []
-        for (s,t) in itertools.combinations(edge_sites,2):
+        for (s,t) in itertools.combinations(node_list,2):
             if nx.shortest_path_length(self.full_double_graph.to_undirected(),
                                        s,t) <7:
                 possible_head_tails.append([s,t])
@@ -859,6 +865,9 @@ class StructGen():
             index_j = _get_index(site2.pos)
             if _is_inside_cell(site1,site2):
                 if None not in [index_i,index_j]: adjMat[index_i,index_j]=1
+                else:
+                    #self.draw_lattice_graph()
+                    self.plot_syst()
             else: 
                 if None not in [index_i,index_j]: adjMat[index_i,index_j]=-1
         return adjMat.astype('int8')
