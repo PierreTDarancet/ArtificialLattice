@@ -1,4 +1,16 @@
 setup.py
+src/TopoQuest/StructGen.py
+src/TopoQuest/Z2_compute.py
+src/TopoQuest/__init__.py
+src/TopoQuest/check_nontrivial.py
+src/TopoQuest/dump.py
+src/TopoQuest/lattices.py
+src/TopoQuest/mod_plotter.py
+src/TopoQuest/mpi.py
+src/TopoQuest/pizzadump.py
+src/TopoQuest/sectioned.py
+src/TopoQuest/test.py
+src/TopoQuest/utilities.py
 src/TopoQuest.egg-info/PKG-INFO
 src/TopoQuest.egg-info/SOURCES.txt
 src/TopoQuest.egg-info/dependency_links.txt

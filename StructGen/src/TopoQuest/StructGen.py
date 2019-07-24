@@ -165,7 +165,7 @@ class StructGen():
         self.full_double_graph = None 
         self.full_syst = None
         self.full_double_syst = None 
-        self.mirror_sym_pairs = None 
+        self.sym_pairs = None 
         self.full_syst_lat = None 
         self._set_full_syst_attributes()
         self.graph = None 
@@ -186,11 +186,26 @@ class StructGen():
             for site2 in list(self.full_double_syst.sites()): 
                 if site1 is not site2: 
                     x2,y2 = site2.pos
-                    x_check = abs(abs(x1-mirror_plane)-abs(x2-mirror_plane)) < 1.e-2 
-                    y_check = abs(y1-y2) < 1.e-2
+                    x_check = np.isclose(abs(x1-mirror_plane),abs(x2-mirror_plane))  
+                    y_check = np.isclose(y1,y2)
                     if x_check and y_check:
                         mirror_sym_pairs[site1] = site2
         return mirror_sym_pairs
+    
+    def _get_inversion_symmetric_pairs(self): 
+        inversion_plane = self.lx/2.0
+        inv_sym_pairs = {}
+        for site1 in list(self.full_double_syst.sites()): 
+            x1,y1 = site1.pos
+            for site2 in list(self.full_double_syst.sites()): 
+                if site1 is not site2: 
+                    x2,y2 = site2.pos
+                    x_check = np.isclose((x1-inversion_plane),-1*(x2-inversion_plane))  
+                    y_check = np.isclose(y1,-1*y2)
+                    if x_check and y_check:
+                        inv_sym_pairs[site1] = site2
+        return inv_sym_pairs
+        
                                                 
     def _get_site_pos(self,syst=None):
         if syst is None:
@@ -214,7 +229,8 @@ class StructGen():
         self.full_double_graph = self._construct_full_graph(syst=self.full_double_syst)
         self._fill_all_sites()
         #self.graph = self.construct_graph()
-        self.mirror_sym_pairs = self._get_mirror_symmetric_pairs()
+        self.sym_pairs = {'mirror':self._get_mirror_symmetric_pairs(),
+                          'inversion':self._get_inversion_symmetric_pairs}
         return None 
     
     def _make_full_syst(self,uly=0,trans_sym_direction='x'):
@@ -325,7 +341,10 @@ class StructGen():
         is_cluster = nx.is_connected(G_undir)
         return is_cluster and is_continous
     
-    def swap_move(self):
+    def swap_move(self,sym='mirror'):
+        if sym not in ['mirror','inversion']: 
+            raise('sym argument needs to be either "mirror" or "inversion"')
+        sym_pairs = self.sym_pairs[sym]  
         edge_sites = []
         for site in self.syst.sites(): 
             if self.syst.degree(site)<3:
@@ -372,7 +391,7 @@ class StructGen():
                         return False
                     else: 
                         self.syst[site] = self.onsite 
-                        self.syst[self.mirror_sym_pairs[site]] = self.onsite
+                        self.syst[sym_pairs[site]] = self.onsite
                 self.syst[self.full_syst_lat.neighbors()] = self.hop
                 return True
         
@@ -394,14 +413,14 @@ class StructGen():
                 remove_path = random.choice(path_exist)
                 symmetric_duplicates = []
                 for site in remove_path: 
-                    if self.mirror_sym_pairs[site] in remove_path: 
-                        symmetric_duplicates.append(self.mirror_sym_pairs[site])
+                    if sym_pairs[site] in remove_path: 
+                        symmetric_duplicates.append(sym_pairs[site])
                 for site in symmetric_duplicates: 
                     remove_path.remove(site)
                 for site in remove_path: 
                     #print(site.pos)
                     del self.syst[site]  
-                    del self.syst[self.mirror_sym_pairs[site]]
+                    del self.syst[sym_pairs[site]]
                     #kwant.plot(self.syst)
 
                 try: 
