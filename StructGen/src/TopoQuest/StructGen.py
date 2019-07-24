@@ -230,7 +230,7 @@ class StructGen():
         self._fill_all_sites()
         #self.graph = self.construct_graph()
         self.sym_pairs = {'mirror':self._get_mirror_symmetric_pairs(),
-                          'inversion':self._get_inversion_symmetric_pairs}
+                          'inversion':self._get_inversion_symmetric_pairs()}
         return None 
     
     def _make_full_syst(self,uly=0,trans_sym_direction='x'):
@@ -341,10 +341,8 @@ class StructGen():
         is_cluster = nx.is_connected(G_undir)
         return is_cluster and is_continous
     
-    def swap_move(self,sym='mirror'):
-        if sym not in ['mirror','inversion']: 
-            raise('sym argument needs to be either "mirror" or "inversion"')
-        sym_pairs = self.sym_pairs[sym]  
+    
+    def _get_possible_head_tails(self): 
         edge_sites = []
         for site in self.syst.sites(): 
             if self.syst.degree(site)<3:
@@ -361,7 +359,18 @@ class StructGen():
             if nx.shortest_path_length(self.full_double_graph.to_undirected(),
                                        s,t) <7:
                 possible_head_tails.append([s,t])
-                
+        return possible_head_tails
+    
+    def swap_move(self,sym='mirror'):
+        if sym not in ['mirror','inversion']: 
+            raise('sym argument needs to be either "mirror" or "inversion"')
+        if sym =='mirror':
+            lines_move = self.random_mirror_symmetric
+        else: 
+            lines_move = self.random_inversion_symmetric
+        sym_pairs = self.sym_pairs[sym]  
+        possible_head_tails = self._get_possible_head_tails()
+        
         def _add_ring(paths):
             width = 0
             temp_syst = copy.deepcopy(self.syst) 
@@ -396,19 +405,22 @@ class StructGen():
                 return True
         
         def _remove_ring(paths): 
+            print("Removing rings") 
             temp_syst = copy.deepcopy(self.syst) 
             path_exist = []
             for path in paths: 
                 if len(path) <7: 
                     site_exist_in_path = True 
                     for site in path: 
+                        print(site.pos)
                         if site not in self.syst.sites(): 
                             site_exist_in_path = False 
                     if site_exist_in_path:
-                        path_exist.append(path)      
+                        path_exist.append(path)   
+            print(path_exist)
             if not path_exist: 
                 return False 
-            elif len(path_exist) > 1:
+            else:
                 print("Removing rings")        
                 remove_path = random.choice(path_exist)
                 symmetric_duplicates = []
@@ -440,8 +452,7 @@ class StructGen():
                     del temp_syst
                     print("Continue fail")
                     return False 
-            else: 
-                return False
+
 
         moved = False 
         rand = random.uniform(0,1)
@@ -450,13 +461,17 @@ class StructGen():
         else: 
             move = _remove_ring
         ntrail = 0
+        kwant.plot(self.syst)
         while not moved:
             ntrail += 1
             [s,t] = random.choice(possible_head_tails)
-            paths = nx.all_simple_paths(self.full_double_graph,s,t,cutoff=5)          
+            print(s.pos,t.pos)
+            paths = nx.all_simple_paths(self.full_double_graph.to_undirected()
+                                        ,s,t,cutoff=5)          
             moved = move(paths)
-            if ntrail > 100:
-                self.random_mirror_symmetric()
+            if ntrail > 10:
+                lines_move()
+                possible_head_tails = self._get_possible_head_tails()
                 if move == _add_ring:
                     move = _remove_ring
                 else: 
@@ -601,7 +616,13 @@ class StructGen():
                                               lineCoeff1=lineCoeff1, 
                                               lineCoeff2=lineCoeff2)),(0,0))]=self.onsite 
         syst[self.lat.neighbors()]=self.hop
-        syst.eradicate_dangling()
+        temp_syst = copy.deepcopy(syst)
+        try:
+            temp_syst.eradicate_dangling()
+            syst = copy.deepcopy(temp_syst)
+        except: 
+            kwant.plot(syst)
+            raise
         self.syst = syst   
     
     def get_syst(self): 
@@ -853,10 +874,12 @@ class StructGen():
         pos = np.array(self._get_site_pos())
         ymin,ymax = np.min(pos[:,1]),np.max(pos[:,1]) 
         clearance = self.ly - (ymax-ymin)
+        #clearance = ymin
         if clearance <= 0: 
             offset = copysign(1,clearance)*(ceil(abs(clearance)/self.lat.prim_vecs[1][1])+1)*self.lat.prim_vecs[1][1]
         else: 
             offset=0
+        print('offset={}'.format(offset))
         def _get_index(site):
             x,y = site 
             # Remap the sites outsite the box (images) to the corresponding
