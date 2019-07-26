@@ -16,6 +16,7 @@ import kwant,z2pack,cmath,random,operator,copy,itertools
 import numpy as np 
 import networkx as nx 
 import matplotlib.pyplot as plt 
+import pdb 
 #import networkx.algorithms.isomorphism as iso
 
 def get_Hk(sys, args=(), momenta=65, file=None, *, params=None,dim=3):
@@ -369,7 +370,7 @@ class StructGen():
         else: 
             lines_move = self.random_inversion_symmetric
         sym_pairs = self.sym_pairs[sym]  
-        possible_head_tails = self._get_possible_head_tails()
+        
         
         def _add_ring(paths):
             width = 0
@@ -405,19 +406,23 @@ class StructGen():
                 return True
         
         def _remove_ring(paths): 
-            print("Removing rings") 
+            print("Removing rings-enter") 
             temp_syst = copy.deepcopy(self.syst) 
             path_exist = []
+            nsites = len(list(self.syst.sites()))
+            struct_array = np.array(self._get_site_pos())
             for path in paths: 
                 if len(path) <7: 
                     site_exist_in_path = True 
                     for site in path: 
-                        print(site.pos)
-                        if site not in self.syst.sites(): 
+                        test_array = np.array([[site.pos[0],site.pos[1]]]*nsites)                      
+                        if not np.any(np.all(np.isclose(test_array,struct_array),axis=1)):
+                            print("false",site.pos)
                             site_exist_in_path = False 
                     if site_exist_in_path:
                         path_exist.append(path)   
-            print(path_exist)
+            pdb.set_trace()
+            #print(path_exist)
             if not path_exist: 
                 return False 
             else:
@@ -429,10 +434,20 @@ class StructGen():
                         symmetric_duplicates.append(sym_pairs[site])
                 for site in symmetric_duplicates: 
                     remove_path.remove(site)
+                
+                pdb.set_trace()
+                def _del_site(site): 
+                    syst_site = self.syst.closest(site.pos)
+                    if np.all(np.isclose(syst_site.pos,site.pos)): 
+                        del self.syst[syst_site]  
+                    else: 
+                        print("Remove site not found in syst",site.pos)
+                        pdb.set_trace()
+
                 for site in remove_path: 
+                    _del_site(site)
+                    _del_site(sym_pairs[site])
                     #print(site.pos)
-                    del self.syst[site]  
-                    del self.syst[sym_pairs[site]]
                     #kwant.plot(self.syst)
 
                 try: 
@@ -451,6 +466,7 @@ class StructGen():
                     self.syst = copy.deepcopy(temp_syst) 
                     del temp_syst
                     print("Continue fail")
+                    pdb.set_trace()
                     return False 
 
 
@@ -461,21 +477,21 @@ class StructGen():
         else: 
             move = _remove_ring
         ntrail = 0
+        move = _remove_ring
         kwant.plot(self.syst)
         while not moved:
             ntrail += 1
-            [s,t] = random.choice(possible_head_tails)
+            [s,t] = random.choice(self._get_possible_head_tails())
             print(s.pos,t.pos)
             paths = nx.all_simple_paths(self.full_double_graph.to_undirected()
                                         ,s,t,cutoff=5)          
             moved = move(paths)
             if ntrail > 10:
                 lines_move()
-                possible_head_tails = self._get_possible_head_tails()
-                if move == _add_ring:
-                    move = _remove_ring
-                else: 
-                    move = _add_ring        
+                #if move == _add_ring:
+                #    move = _remove_ring
+                #else: 
+                #    move = _add_ring        
      
     def _get_random_2pts(self,L,w): 
         """ Used internally for randomly choosing 2pts so 
@@ -873,25 +889,33 @@ class StructGen():
         adjMat = np.zeros((nmax_sites,nmax_sites))   
         pos = np.array(self._get_site_pos())
         ymin,ymax = np.min(pos[:,1]),np.max(pos[:,1]) 
-        clearance = self.ly - (ymax-ymin)
+        #clearance = self.ly - (ymax-ymin)
         #clearance = ymin
-        if clearance <= 0: 
-            offset = copysign(1,clearance)*(ceil(abs(clearance)/self.lat.prim_vecs[1][1])+1)*self.lat.prim_vecs[1][1]
-        else: 
-            offset=0
-        print('offset={}'.format(offset))
+        #if clearance <= 0: 
+        #    offset = copysign(1,clearance)*(ceil(abs(clearance)/self.lat.prim_vecs[1][1])+1)*self.lat.prim_vecs[1][1]
+        #else: 
+        #    offset=0
+        #exit
+        #print('offset={}'.format(offset))
         def _get_index(site):
             x,y = site 
             # Remap the sites outsite the box (images) to the corresponding
             # sites inside box 
             x -= floor(x/self.lx)*self.lx
-            y += offset
+            #y += offset    
             for i,item in enumerate(self.full_double_syst_pos):
                 diff = abs(item[0]-x) + abs(item[1]-y)
                 if diff < 1.e-2:
-                    return i
+                    return i 
+
             print('Matching node for {},{} not found in double_syst_graph'.format(x,y))
+            pdb.set_trace()
             return None 
+            #try:
+            #    return self.index_dict[(x,y)]
+            #except:
+            #    print('Matching node for {},{} not found in double_syst_graph'.format(x,y))
+            #    return None 
         
         def _is_inside_cell(site1,site2): 
             x1,y1 = site1.pos 
