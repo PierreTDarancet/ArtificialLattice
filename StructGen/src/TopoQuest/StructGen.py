@@ -375,20 +375,28 @@ class StructGen():
         def _add_ring(paths):
             width = 0
             temp_syst = copy.deepcopy(self.syst) 
-            pos = np.array(self._get_site_pos())
-            ymin,ymax = np.min(pos[:,1]),np.max(pos[:,1])
+            struct_array = np.array(self._get_site_pos())
+            ymin,ymax = np.min(struct_array[:,1]),np.max(struct_array[:,1])
+            nsites = len(list(self.syst.sites()))
             path_not_exist = []
             for path in paths: 
                 if len(path) <7: 
                     site_exist_in_path = True 
                     for site in path: 
-                        if site not in self.syst.sites(): 
+                        test_array = np.array([[site.pos[0],site.pos[1]]]*nsites)                      
+                        if not np.any(np.all(np.isclose(test_array,struct_array),axis=1)):
+                            print("false",site.pos)
                             site_exist_in_path = False 
                     if not site_exist_in_path: 
                         path_not_exist.append(path)     
             if not path_not_exist: 
                 return False
             else: 
+                
+                def _add_site(site):                     
+                    syst_site = self.syst.closest(site.pos)
+                    self.syst[syst_site] = self.onsite  
+                    
                 print("Adding rings")
                 add_path = random.choice(path_not_exist)
                 for site in add_path:
@@ -400,9 +408,10 @@ class StructGen():
                         del temp_syst
                         return False
                     else: 
-                        self.syst[site] = self.onsite 
-                        self.syst[sym_pairs[site]] = self.onsite
+                        _add_site(site) 
+                        _add_site(sym_pairs[site])
                 self.syst[self.full_syst_lat.neighbors()] = self.hop
+                pdb.set_trace()
                 return True
         
         def _remove_ring(paths): 
@@ -447,8 +456,6 @@ class StructGen():
                 for site in remove_path: 
                     _del_site(site)
                     _del_site(sym_pairs[site])
-                    #print(site.pos)
-                    #kwant.plot(self.syst)
 
                 try: 
                     self.syst.eradicate_dangling()
@@ -477,7 +484,7 @@ class StructGen():
         else: 
             move = _remove_ring
         ntrail = 0
-        move = _remove_ring
+        move = _add_ring
         kwant.plot(self.syst)
         while not moved:
             ntrail += 1
