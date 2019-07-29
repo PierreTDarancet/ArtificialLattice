@@ -23,24 +23,24 @@ nontrivial = []
 
 def lines_sampling(): 
     ntrail_lines =0 
-    while CR.is_redundant(gen.syst):
+    while CR.is_redundant(gen.syst,gen.index_dict):
         ntrail_lines +=1
         gen.random_inversion_symmetric()
         if ntrail_lines > 1000: 
-            swap_moves(sym='inversion')
+            swap_moves(sym='mirror')
 
 def swap_moves(): 
     ntrail_swap = 0
     ntrail_lines = 0
-    gen.swap_move(sym='inversion')
-    while CR.is_redundant(gen.syst): 
+    gen.swap_move(sym='mirror')
+    while CR.is_redundant(gen.syst,gen.index_dict): 
         ntrail_swap +=1 
         if ntrail_swap > 1000: 
             ntrail_lines +=1
             if ntrail_lines > 100: 
                 gen._fill_all_sites()
             lines_sampling()
-        gen.swap_move(sym='inversion')
+        gen.swap_move(sym='mirror')
 
 
 

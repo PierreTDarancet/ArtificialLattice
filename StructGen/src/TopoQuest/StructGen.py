@@ -109,7 +109,7 @@ class Check_redundant():
     def __init__(self):
         self.seen_lat = set()
     
-    def is_redundant(self,syst):
+    def is_redundant(self,syst,index_dict):
         """Returns True if the structure has been seen before by the generator
         
         Parameters
@@ -124,7 +124,9 @@ class Check_redundant():
         if syst is None: 
             return True 
         else:
-            sites = frozenset(site for site in list(syst.sites()))
+            sites = frozenset(index_dict[(round(site.pos[0],4),round(site.pos[1],4))] \
+                                         for site in list(syst.sites())) 
+                
             if sites in self.seen_lat: 
                 print("Redundant structure identified")
                 return True 
@@ -223,8 +225,9 @@ class StructGen():
         pos = np.array(sorted(self._get_site_pos(syst=self.full_double_syst),
                      key=operator.itemgetter(0,1)))
         index_dict = {}
-        for i,site in enumerate(pos): 
-            index_dict[tuple(site)] =i 
+        # Keys for the index dict are site positions upto 4 decimal places
+        for i,p in enumerate(pos):
+            index_dict[(round(p[0],4),round(p[1],4))] =i 
         self.index_dict = index_dict
         self.full_double_syst_pos = pos
         self.full_double_graph = self._construct_full_graph(syst=self.full_double_syst)
@@ -485,7 +488,6 @@ class StructGen():
         while not moved:
             ntrail += 1
             [s,t] = random.choice(self._get_possible_head_tails())
-            print(s.pos,t.pos)
             paths = nx.all_simple_paths(self.full_double_graph.to_undirected()
                                         ,s,t,cutoff=5)          
             moved = move(paths)
@@ -536,39 +538,47 @@ class StructGen():
                         return True 
                     else: 
                         return False
+        def _make_syst(): 
+            ypt11,ypt12 = self._get_random_2pts(self.ly,min_width)
+            ypt11,ypt12 = min(ypt11,ypt12),max(ypt11,ypt12)
+            PTS1 = [[0,ypt11],[0,ypt12]]                
+            ypt21,ypt22 = self._get_random_2pts(rect_L_plus_W,min_width)
+            ypt21,ypt22 = min(ypt21,ypt22),max(ypt21,ypt22)
+            PTS2=[]
+            for pt in [ypt21,ypt22]: 
+                if pt > self.ly:
+                    PTS2.append([self.lx/2.0+self.ly-pt,self.ly])
+                else: 
+                    PTS2.append([self.lx/2.0,pt])            
+            PTS2 = sorted(PTS2,key=lambda x: x[0],reverse = True)
+            if abs(PTS2[0][0] - PTS2[1][0]) < 1.e-4: 
+                PTS2 = sorted(PTS2,key=lambda x: x[1])
+                    
+            lineCoeff1 =  np.polyfit([PTS1[0][0],PTS2[0][0]],
+                                         [PTS1[0][1],PTS2[0][1]],1)
+            
+            lineCoeff2 =  np.polyfit([PTS1[1][0],PTS2[1][0]],
+                                         [PTS1[1][1],PTS2[1][1]],1)
+            
+            offset = lineCoeff1[1]
+            lineCoeff1[1] -= offset 
+            lineCoeff2[1] -= offset  
+            syst = kwant.Builder(kwant.TranslationalSymmetry([self.lx,0]))
+            syst[self.lat.shape((lambda pos: _shape_from_lines(pos,offset,
+                                                  lineCoeff1=lineCoeff1, 
+                                                  lineCoeff2=lineCoeff2)),(0,0))]=self.onsite 
+            syst[self.lat.neighbors()]=self.hop
+            syst.eradicate_dangling()
+            self.syst = syst
+            return self._is_continous() 
+            
+        status = False
+        while not status:
+            try:
+                status = _make_syst()
+            except: 
+                continue    
         
-        ypt11,ypt12 = self._get_random_2pts(self.ly,min_width)
-        ypt11,ypt12 = min(ypt11,ypt12),max(ypt11,ypt12)
-        PTS1 = [[0,ypt11],[0,ypt12]]                
-        ypt21,ypt22 = self._get_random_2pts(rect_L_plus_W,min_width)
-        ypt21,ypt22 = min(ypt21,ypt22),max(ypt21,ypt22)
-        PTS2=[]
-        for pt in [ypt21,ypt22]: 
-            if pt > self.ly:
-                PTS2.append([self.lx/2.0+self.ly-pt,self.ly])
-            else: 
-                PTS2.append([self.lx/2.0,pt])            
-        PTS2 = sorted(PTS2,key=lambda x: x[0],reverse = True)
-        if abs(PTS2[0][0] - PTS2[1][0]) < 1.e-4: 
-            PTS2 = sorted(PTS2,key=lambda x: x[1])
-                
-        lineCoeff1 =  np.polyfit([PTS1[0][0],PTS2[0][0]],
-                                     [PTS1[0][1],PTS2[0][1]],1)
-        
-        lineCoeff2 =  np.polyfit([PTS1[1][0],PTS2[1][0]],
-                                     [PTS1[1][1],PTS2[1][1]],1)
-        
-        offset = lineCoeff1[1]
-        lineCoeff1[1] -= offset 
-        lineCoeff2[1] -= offset
-        
-        syst = kwant.Builder(kwant.TranslationalSymmetry([self.lx,0]))
-        syst[self.lat.shape((lambda pos: _shape_from_lines(pos,offset,
-                                              lineCoeff1=lineCoeff1, 
-                                              lineCoeff2=lineCoeff2)),(0,0))]=self.onsite 
-        syst[self.lat.neighbors()]=self.hop
-        syst.eradicate_dangling()
-        self.syst = syst
     
     def random_inversion_symmetric(self,Ncentral=7): 
         min_width = get_width(Ncentral,self.lat)
@@ -608,45 +618,54 @@ class StructGen():
                 else: 
                     return False
                 
-        ypt11 = -1*random.uniform(0,self.ly)
-        ypt12 = -1*ypt11
-        if ypt12-ypt11 < min_width: 
-            short_by = min_width - abs(ypt11)-abs(ypt12)
-            ypt11 += -1*abs(short_by)
-        PTS1 = [[0,ypt11],[0,ypt12]]
-        ypt21,ypt22 = _get_randsym_2pts(rect_L_plus_W,min_width)
-        ypt21,ypt22 = min(ypt21,ypt22),max(ypt21,ypt22)
-        PTS2=[]
-        for pt in [ypt21,ypt22]: 
-            if pt > self.ly:
-                PTS2.append([self.lx/2.0+self.ly-pt,self.ly])
-            else: 
-                PTS2.append([self.lx/2.0,pt])
-            
-        PTS2 = sorted(PTS2,key=lambda x: x[0],reverse = True)
-        if abs(PTS2[0][0] - PTS2[1][0]) < 1.e-4: 
-            PTS2 = sorted(PTS2,key=lambda x: x[1])
+        def _make_syst():
+            ypt11 = -1*random.uniform(0,self.ly)
+            ypt12 = -1*ypt11
+            if ypt12-ypt11 < min_width: 
+                short_by = min_width - abs(ypt11)-abs(ypt12)
+                ypt11 += -1*abs(short_by)
+            PTS1 = [[0,ypt11],[0,ypt12]]
+            ypt21,ypt22 = _get_randsym_2pts(rect_L_plus_W,min_width)
+            ypt21,ypt22 = min(ypt21,ypt22),max(ypt21,ypt22)
+            PTS2=[]
+            for pt in [ypt21,ypt22]: 
+                if pt > self.ly:
+                    PTS2.append([self.lx/2.0+self.ly-pt,self.ly])
+                else: 
+                    PTS2.append([self.lx/2.0,pt])
                 
-        lineCoeff1 =  np.polyfit([PTS1[0][0],PTS2[0][0]],
-                                     [PTS1[0][1],PTS2[0][1]],1)
+            PTS2 = sorted(PTS2,key=lambda x: x[0],reverse = True)
+            if abs(PTS2[0][0] - PTS2[1][0]) < 1.e-4: 
+                PTS2 = sorted(PTS2,key=lambda x: x[1])
+                    
+            lineCoeff1 =  np.polyfit([PTS1[0][0],PTS2[0][0]],
+                                         [PTS1[0][1],PTS2[0][1]],1)
+            
+            lineCoeff2 =  np.polyfit([PTS1[1][0],PTS2[1][0]],
+                                         [PTS1[1][1],PTS2[1][1]],1)
+              
+            syst = kwant.Builder(kwant.TranslationalSymmetry([self.lx,0]))
+            syst[self.lat.shape((lambda pos: _shape_from_lines(pos,
+                                                  lineCoeff1=lineCoeff1, 
+                                                  lineCoeff2=lineCoeff2)),(0,0))]=self.onsite 
+            syst[self.lat.neighbors()]=self.hop
+            temp_syst = copy.deepcopy(syst)
+            try:
+                temp_syst.eradicate_dangling()
+                syst = copy.deepcopy(temp_syst)
+            except: 
+                kwant.plot(syst)
+                raise
+            self.syst = syst
+            return self._is_continous() 
         
-        lineCoeff2 =  np.polyfit([PTS1[1][0],PTS2[1][0]],
-                                     [PTS1[1][1],PTS2[1][1]],1)
-        
-        syst = kwant.Builder(kwant.TranslationalSymmetry([self.lx,0]))
-        syst[self.lat.shape((lambda pos: _shape_from_lines(pos,
-                                              lineCoeff1=lineCoeff1, 
-                                              lineCoeff2=lineCoeff2)),(0,0))]=self.onsite 
-        syst[self.lat.neighbors()]=self.hop
-        temp_syst = copy.deepcopy(syst)
-        try:
-            temp_syst.eradicate_dangling()
-            syst = copy.deepcopy(temp_syst)
-        except: 
-            kwant.plot(syst)
-            raise
-        self.syst = syst   
-    
+        status = False
+        while not status:
+            try:
+                status = _make_syst()
+            except: 
+                continue 
+            
     def get_syst(self): 
         """
         Returns the kwant.Builder instance corresponding to the current state 
@@ -696,14 +715,14 @@ class StructGen():
             xy = np.loadtxt(StringIO(frame),skiprows=9,usecols=(1,2))
             return [lx,ly,xy]
         lx,ly,xy = _read_frame(frame)
-        min_x = np.min(xy[:,0])
+        min_x, min_y,max_y = np.min(xy[:,0]), np.min(xy[:,1]),np.max(xy[:,1])
         edge_sites = xy[xy[:,0]==min_x]
-        min_y = np.min(edge_sites[:,1])
-        xy[:,1] -= min_y
-        lat_y = 2*ly+2.0
+        edge_min_y = np.min(edge_sites[:,1])
+        xy[:,1] -= edge_min_y
+        lat_y = 2*ly + min_y 
         lat = kwant.lattice.general([[lx,0],[0,lat_y]],xy)
         syst = kwant.Builder(kwant.TranslationalSymmetry([lx,0]))
-        syst[lat.shape((lambda pos: 0 <= pos[1] < lat_y),(0,0))]= self.onsite
+        syst[lat.shape((lambda pos: min_y <= pos[1] <=max_y),(0,0))]= self.onsite
         syst[lat.neighbors()] = self.hop
         self.syst = syst 
         return syst 
@@ -909,14 +928,16 @@ class StructGen():
             # sites inside box 
             x -= floor(x/self.lx)*self.lx
             #y += offset    
-            for i,item in enumerate(self.full_double_syst_pos):
-                diff = abs(item[0]-x) + abs(item[1]-y)
-                if diff < 1.e-2:
-                    return i 
-
-            print('Matching node for {},{} not found in double_syst_graph'.format(x,y))
-            pdb.set_trace()
-            return None 
+            #for i,item in enumerate(self.full_double_syst_pos):
+            #    diff = abs(item[0]-x) + abs(item[1]-y)
+            #    if diff < 1.e-2:
+            #     return i
+            try:
+                return self.index_dict[(round(x,4),round(y,4))]
+            except:
+                print('Matching node for {},{} not found in double_syst_graph'.format(x,y))
+                pdb.set_trace()
+                return None 
             #try:
             #    return self.index_dict[(x,y)]
             #except:
