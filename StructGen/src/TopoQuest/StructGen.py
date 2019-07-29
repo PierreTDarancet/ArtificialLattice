@@ -322,7 +322,10 @@ class StructGen():
         return G 
         
     def _is_continous(self): 
-        G = self.construct_graph() 
+        try:
+            G = self.construct_graph()
+        except: 
+            return False
         G_undir = G.to_undirected()
         graph_xlist = [node for node in G.nodes('x')]
         graph_xlist.sort(key=itemgetter(1))
@@ -381,22 +384,14 @@ class StructGen():
             path_not_exist = []
             for path in paths: 
                 if len(path) <7: 
-                    site_exist_in_path = True 
                     for site in path: 
                         test_array = np.array([[site.pos[0],site.pos[1]]]*nsites)                      
                         if not np.any(np.all(np.isclose(test_array,struct_array),axis=1)):
-                            print("false",site.pos)
-                            site_exist_in_path = False 
-                    if not site_exist_in_path: 
-                        path_not_exist.append(path)     
+                            path_not_exist.append(path)
+                            continue
             if not path_not_exist: 
                 return False
             else: 
-                
-                def _add_site(site):                     
-                    syst_site = self.syst.closest(site.pos)
-                    self.syst[syst_site] = self.onsite  
-                    
                 print("Adding rings")
                 add_path = random.choice(path_not_exist)
                 for site in add_path:
@@ -408,14 +403,13 @@ class StructGen():
                         del temp_syst
                         return False
                     else: 
-                        _add_site(site) 
-                        _add_site(sym_pairs[site])
+                        self.syst[site] = self.onsite
+                        self.syst[sym_pairs[site]] = self.onsite
                 self.syst[self.full_syst_lat.neighbors()] = self.hop
-                pdb.set_trace()
+                #pdb.set_trace()
                 return True
         
         def _remove_ring(paths): 
-            print("Removing rings-enter") 
             temp_syst = copy.deepcopy(self.syst) 
             path_exist = []
             nsites = len(list(self.syst.sites()))
@@ -426,32 +420,33 @@ class StructGen():
                     for site in path: 
                         test_array = np.array([[site.pos[0],site.pos[1]]]*nsites)                      
                         if not np.any(np.all(np.isclose(test_array,struct_array),axis=1)):
-                            print("false",site.pos)
                             site_exist_in_path = False 
                     if site_exist_in_path:
                         path_exist.append(path)   
-            pdb.set_trace()
-            #print(path_exist)
+            #pdb.set_trace()
             if not path_exist: 
                 return False 
             else:
                 print("Removing rings")        
                 remove_path = random.choice(path_exist)
                 symmetric_duplicates = []
-                for site in remove_path: 
-                    if sym_pairs[site] in remove_path: 
-                        symmetric_duplicates.append(sym_pairs[site])
+                for site in remove_path:
+                    if site in sym_pairs:
+                        if sym_pairs[site] in remove_path: 
+                            symmetric_duplicates.append(sym_pairs[site])
+                    else: 
+                        return False
                 for site in symmetric_duplicates: 
                     remove_path.remove(site)
                 
-                pdb.set_trace()
+                #pdb.set_trace()
                 def _del_site(site): 
                     syst_site = self.syst.closest(site.pos)
                     if np.all(np.isclose(syst_site.pos,site.pos)): 
                         del self.syst[syst_site]  
                     else: 
                         print("Remove site not found in syst",site.pos)
-                        pdb.set_trace()
+                        #pdb.set_trace()
 
                 for site in remove_path: 
                     _del_site(site)
@@ -473,7 +468,7 @@ class StructGen():
                     self.syst = copy.deepcopy(temp_syst) 
                     del temp_syst
                     print("Continue fail")
-                    pdb.set_trace()
+                    #pdb.set_trace()
                     return False 
 
 
@@ -484,8 +479,9 @@ class StructGen():
         else: 
             move = _remove_ring
         ntrail = 0
-        move = _add_ring
-        kwant.plot(self.syst)
+        #move = _add_ring
+        #print("Outside loop")
+        #kwant.plot(self.syst)
         while not moved:
             ntrail += 1
             [s,t] = random.choice(self._get_possible_head_tails())
@@ -495,10 +491,13 @@ class StructGen():
             moved = move(paths)
             if ntrail > 10:
                 lines_move()
-                #if move == _add_ring:
-                #    move = _remove_ring
-                #else: 
-                #    move = _add_ring        
+                #print("lines sampling")
+                #kwant.plot(self.syst)
+                ntrail = 1
+                if move == _add_ring:
+                    move = _remove_ring
+                else: 
+                    move = _add_ring        
      
     def _get_random_2pts(self,L,w): 
         """ Used internally for randomly choosing 2pts so 

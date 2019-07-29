@@ -13,7 +13,8 @@ Struct_Dir='./swap-'+str(now).split()[0]+'/'
 if not os.path.exists(Struct_Dir): 
     os.makedirs(Struct_Dir)
 
-gen = StructGen('Armchair',nlx=4,nly=4,dumpfile=Struct_Dir+'dump.atom') 
+gen = StructGen('Armchair',nlx=4,nly=4
+                ,dumpfile=Struct_Dir+'dump.atom') 
 CR = Check_redundant()
 gen.random_inversion_symmetric()
 
