@@ -38,8 +38,11 @@ release = 'v0.1'
 
 
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.autosummary',
-              'sphinx.ext.todo', 'sphinx.ext.mathjax', 'numpydoc']
+              'sphinx.ext.todo', 'sphinx.ext.mathjax', 
+              'numpydoc','sphinx.ext.napoleon']
 
+numpydoc_show_class_members = False
+class_members_toctree = False
 
 
 # Add any paths that contain templates here, relative to this directory.

@@ -278,9 +278,8 @@ class StructGen():
         """
         Reset the size of the StructGen box and lattice
         
-        Attributes
+        Parameters
         ----------
-        
         lat: string 
              One of the valid lattices - ('Armchair','Zigzag','Lieb',Kagome')
         
@@ -305,12 +304,13 @@ class StructGen():
         Useful for making complex geometries eg: cove-edged and chevron ribbon
     
         Parameters
-        ==========
+        ----------
             system: instance of the finite system
             lat_vec: lattice vector of the translational symmetry 
             trans_sym_direction: 'x' or 'y' , direction of the translational symmetry
         
-        TODO: 
+        TODO
+        ----
             1. Currently only works for orthorhombic unit cells 
             2. Get the onsite and hopping values directly from the passed system
             Currently hard set inside the code"""
@@ -708,12 +708,8 @@ class StructGen():
         
         Parameters 
         ---------- 
-        
         syst: kwant.Builder instance
         
-        Returns 
-        -------
-            None 
         """
         self.syst=syst
         
@@ -757,7 +753,8 @@ class StructGen():
     
     def syst2poscar(self,filename='POSCAR'):
         """
-        Saves the current state of the random structure generator as a POSCAR file
+        Saves the current state of the random structure generator as a 
+        POSCAR file
         
         Parameters
         ----------
@@ -1033,11 +1030,9 @@ class StructGen():
 
     def draw_lattice_graph(self,graph=None,figsize=None): 
         """
-        Draws the kwant system accroding to the position of the sites
+        Draws the graph of the kwant system with nodes mapped accroding 
+        to the position of the sites
         
-        Returns 
-        -------
-        None 
         """
         if not graph: 
             graph = self.construct_graph()
@@ -1095,15 +1090,4 @@ class StructGen():
                 edges.append(site)
                 for neigh in self.syst.neighbors(site): 
                     self.syst[site,neigh] += delta_t/2.0 
-        
-                
-        
-        
-        
-    
-                        
-            
-                
-        
-    
         
