@@ -746,7 +746,7 @@ class StructGen():
         lat_y = 2*ly + min_y 
         lat = kwant.lattice.general([[lx,0],[0,lat_y]],xy)
         syst = kwant.Builder(kwant.TranslationalSymmetry([lx,0]))
-        syst[lat.shape((lambda pos: min_y <= pos[1] <=max_y),(0,0))]= self.onsite
+        syst[lat.shape((lambda pos: min_y-edge_min_y <= pos[1] <=max_y-edge_min_y),(0,0))]= self.onsite
         syst[lat.neighbors()] = self.hop
         self.syst = syst 
         return syst 
