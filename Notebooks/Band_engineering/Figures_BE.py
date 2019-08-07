@@ -177,7 +177,7 @@ def check_junction(syst1,syst2,lx1,lx2,ly=14,xoff=0,yoff=0):
     ham = syst.hamiltonian_submatrix() 
     fig = plot_wf(syst,n1,n2,ham)
 
-wide = make_1D_zigzag(N=13,L=4)
+wide = make_1D_zigzag(N=9,L=4)
 wide = finite_to_1D(wide,1)
 gen.syst = wide
 gen.syst2poscar('POSCAR.wide')
@@ -212,6 +212,7 @@ for tick in ax.yaxis.get_major_ticks():
 plt.ylabel('Energy (x t) [eV]',fontweight='bold',fontsize=25)
 plt.ylim([-1.0,1.0])
 plt.xlim([-np.pi,np.pi])
+#plt.legend()
 plt.tight_layout()
 #plt.show()
 plt.savefig('bands.tiff')
@@ -234,36 +235,49 @@ def make_junction_comp(systs,lx1,yoffs):
     max_y = np.max(np.array(pos_all)[:,1])
     lat = kwant.lattice.general([[lx,0],[0,max_y+5.0]],pos_all,norbs=1)
     syst = kwant.Builder(kwant.TranslationalSymmetry([lx,0]))
-    #syst = kwant.Builder()
     syst[lat.shape((lambda pos: 0< pos[0]< lx and 0<=pos[1]<max_y+5.0),(0,0))] = 0 
     syst[lat.neighbors()] = -1 
     return syst 
 
-systs1 = [narrow]*2 + [wide]*8 + [narrow]*2
+systs1 = ([narrow] + [wide])*4 + [narrow] 
 #systs = [narrow,narrow,wide,narrow,wide,narrow]
 #yoffs = np.array([0,2,3,6,6,5,2,0])*np.sqrt(3)/3 
-yoffs = np.array([0]*2 + [2]*8 + [0]*2)*np.sqrt(3)/3 
+yoffs = np.array([0,1,2,3,4,3,2,1,0])*np.sqrt(3)/3 
 comp_syst1 = make_junction_comp(systs1,1,yoffs)
-kwant.plot(comp_syst1,site_color='black')
+#kwant.plot(comp_syst1,site_color='black')
+momenta2 = np.linspace(-np.pi,np.pi,101) 
 bands3 = kwant.physics.Bands(comp_syst1.finalized()) 
 energies3 = [bands3(k) for k in momenta]
 
+gen2 = StructGen('Armchair',nlx=2,nly=20) 
+gen2.syst = comp_syst1
+gen2.syst2poscar('POSCAR.wiggle')
 
-systs2 = [wide]*12
+
+systs2 = [wide]*9
 #systs = [narrow,narrow,wide,narrow,wide,narrow]
 #yoffs = np.array([0,2,3,6,6,5,2,0])*np.sqrt(3)/3 
 yoffs = np.array([0]*12)*np.sqrt(3)/3 
 comp_syst2 = make_junction_comp(systs2,1,yoffs)
-kwant.plot(comp_syst2,site_color='black')
+#kwant.plot(comp_syst2,site_color='black')
 bands4 = kwant.physics.Bands(comp_syst2.finalized()) 
-energies4 = [bands4(k) for k in momenta]
+energies4 = [bands4(k) for k in momenta2]
 
+systs3 = [narrow]*9
+#systs = [narrow,narrow,wide,narrow,wide,narrow]
+#yoffs = np.array([0,2,3,6,6,5,2,0])*np.sqrt(3)/3 
+yoffs = np.array([0]*12)*np.sqrt(3)/3 
+comp_syst3 = make_junction_comp(systs3,1,yoffs)
+#kwant.plot(comp_syst3,site_color='black')
+bands5 = kwant.physics.Bands(comp_syst3.finalized()) 
+energies5 = [bands5(k) for k in momenta2]
 
 fig = plt.figure()
 ax = fig.add_subplot(111) 
 
-ax.plot(momenta,energies3,color='black',label='Wide')
-ax.plot(momenta,energies4,color='red',label='Wide')
+ax.plot(momenta2,energies3,color='black',label='Wide')
+ax.plot(momenta2,energies4,color='red',label='Wide')
+ax.plot(momenta2,energies5,color='blue',label='Wide')
 plt.xticks(ticks=[-np.pi,0.0,np.pi],labels=[r'-$\pi$/a','0',r'$\pi$/a']) 
 plt.yticks(ticks=[-1.0,-0.5,0.0,0.5,1.0])
     
@@ -277,13 +291,12 @@ for tick in ax.yaxis.get_major_ticks():
 plt.ylabel('Energy (x t) [eV]',fontweight='bold',fontsize=25)
 plt.ylim([-1.0,1.0])
 plt.xlim([-np.pi,np.pi])
+#plt.legend()
 plt.tight_layout()
 plt.savefig('bands-comp-syst.tiff')
 fig.clear()                               
 
-
 #gen2.syst = comp_syst
 #gen2.syst2poscar('POSCAR.junction')
-#bands = kwant.physics.Bands(comp_syst.finalized()) 
-
+#bands = kwant.physics.Bands(comp_syst.finalized())
 
