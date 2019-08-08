@@ -242,7 +242,11 @@ def make_junction_comp(systs,lx1,yoffs):
 systs1 = ([narrow] + [wide])*4 + [narrow] 
 #systs = [narrow,narrow,wide,narrow,wide,narrow]
 #yoffs = np.array([0,2,3,6,6,5,2,0])*np.sqrt(3)/3 
+<<<<<<< HEAD
 yoffs = np.array([0,0,1,1,2,1,1,0,0])*np.sqrt(3)/3 
+=======
+yoffs = np.array([0,1,2,3,4,3,2,1,0])*np.sqrt(3)/3 
+>>>>>>> 4721ac757b035ee357fdb8c2c6cf94c8bb0e6184
 comp_syst1 = make_junction_comp(systs1,1,yoffs)
 #kwant.plot(comp_syst1,site_color='black')
 momenta2 = np.linspace(-np.pi,np.pi,101) 
@@ -276,8 +280,13 @@ fig = plt.figure()
 ax = fig.add_subplot(111) 
 
 ax.plot(momenta2,energies3,color='black',label='Wide')
+<<<<<<< HEAD
 #ax.plot(momenta2,energies4,color='red',label='Wide')
 #ax.plot(momenta2,energies5,color='blue',label='Wide')
+=======
+ax.plot(momenta2,energies4,color='red',label='Wide')
+ax.plot(momenta2,energies5,color='blue',label='Wide')
+>>>>>>> 4721ac757b035ee357fdb8c2c6cf94c8bb0e6184
 plt.xticks(ticks=[-np.pi,0.0,np.pi],labels=[r'-$\pi$/a','0',r'$\pi$/a']) 
 plt.yticks(ticks=[-1.0,-0.5,0.0,0.5,1.0])
     
