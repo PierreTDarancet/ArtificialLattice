@@ -904,6 +904,32 @@ class StructGen():
                s += rho(eigvecs[i,:,j])
         return s/(len(eigvecs)*n_occupied_bands)
      
+    def lateralSumLDOS(self,numEBins,numXBins):
+        
+        eigs = self._get_bands() 
+        eigvals,eigvecs = zip(*eigs)
+        eigvals,eigvecs = np.array(eigvals),np.array(eigvecs)
+        rho = kwant.operator.Density(self.syst.finalized())
+        Egrid = np.linspace(np.min(eigvals),np.max(eigvals),numEBins+1)
+        Xbins = np.linspace(0,self.lx,numXBins+1)
+        LDOS = np.zeros([numEBins,numXBins])
+        syst = self.syst.finalized()
+        systPos = [site.pos for site in syst.sites]
+        def _get_sumAlongX(Emin,Emax):
+            XsumELDOS = np.zeros(numXBins)
+            for k in range(np.shape(eigvecs)[1]):
+                for i in range(np.shape(eigvecs)[0]): 
+                    if Emin<= eigvals[i,k]<Emax:            
+                        ELDOS = rho(eigvecs[i,:,k])
+                        for i in range(numXBins):
+                            for sitePos,siteLDOS in zip(systPos,ELDOS): 
+                                if Xbins[i]<= sitePos[0] < Xbins[i+1]: 
+                                    XsumELDOS[i] += siteLDOS 
+            return XsumELDOS
+        for i in range(numEBins): 
+                LDOS[i,:] = _get_sumAlongX(Egrid[i],Egrid[i+1])
+        return LDOS
+    
     def _1D_to_finite(self): 
         pos_lattice = np.array(self._get_site_pos())
         syst = kwant.Builder()
