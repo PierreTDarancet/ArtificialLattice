@@ -8,7 +8,7 @@ Created on Mon Mar 18 16:27:19 2019
 from .utilities import lattices,get_width
 from .dump import dump 
 from pymatgen import Lattice, Structure
-from math import floor
+from math import floor,ceil
 from operator import itemgetter
 from io import StringIO
 import kwant,z2pack,cmath,random,operator,copy,itertools 
@@ -793,17 +793,24 @@ class StructGen():
         """
         struct = Structure.from_file(POSCAR)
         poscar_pos = np.array([[item.coords[0],item.coords[1]] for item in struct])
-        min_x = np.min(poscar_pos[:,0])
-        edge_sites = poscar_pos[poscar_pos[:,0]==min_x]
-        min_y = np.min(edge_sites[:,1])
-        poscar_pos[:,1] -= min_y
+        min_x,min_y,max_y = np.min(poscar_pos[:,0]),np.min(poscar_pos[:,1]), \
+                                  np.max(poscar_pos[:,1])
+        b = self.lat.prim_vecs[1][1]
+        if max_y > self.ly:
+           poscar_pos[:,1] -= ceil((max_y-self.ly)/b)*b
+        if abs(max_y-min_y) > self.ly: 
+            poscar_pos[:,1] -= (ceil(abs(max_y-min_y) -self.ly)+1)*b
+        else:
+            edge_sites = poscar_pos[poscar_pos[:,0]==min_x]
+            minEdge_y = np.min(edge_sites[:,1])
+            poscar_pos[:,1] -= floor(minEdge_y/self.lat.prim_vecs[1][1])*b
         syst = kwant.Builder(kwant.TranslationalSymmetry([self.lx,0]))
         def check_sites(pos):
             x,y = pos 
             for test_site in poscar_pos: 
                 diff_x = abs(test_site[0]-x)
                 diff_y = abs(test_site[1]-y)
-                if diff_x < 1.0e-3 and diff_y < 1.0e-3 :
+                if diff_x < 1.0e-3 and diff_y < 1.0e-2 :
                     return True 
             return False
             
