@@ -69,15 +69,16 @@ class EncodeLattice():
         return np.isclose(syst_pos-site,[0,0]).all(axis=1).any()
     
     def encode(self,syst):
-        pos_list = np.array(self.get_pos_list(syst))
+        pos_list = np.array(self._get_pos_list(syst))
         nlx = int(round(np.max(pos_list[:,0])/self.lx))
-        nly = int(round(np.max(pos_list[:,1]) - np.min(pos_list[:,1])/self.ly) + 1)
+       # nly = int(round(np.max(pos_list[:,1]) - np.min(pos_list[:,1])/self.ly) + 1)
+        nly = 10  
         systCode=[]
         for ny in range(nly): 
             rowCode=[]
             for nx in range(nlx): 
-                xc = self.center +self.lx*nx 
-                yc = self.center +self.ly*ny 
+                xc = self.center[0] +self.lx*nx 
+                yc = self.center[1] +self.ly*ny 
                 shiftedLat = pos_list - [xc,yc] 
                 codeFound=False
                 for code,lat in self.encodeDict.items():
@@ -90,9 +91,10 @@ class EncodeLattice():
                                 codeFound=True 
                 if codeFound==False: 
                     tileCode=0
-            rowCode.append(tileCode)
-        systCode.append(rowCode)
-        return np.array(systCode)
+                rowCode.append(tileCode)
+            systCode.append(rowCode)
+            
+        return np.flip(np.array(systCode),axis=0)
                             
                     
                     
