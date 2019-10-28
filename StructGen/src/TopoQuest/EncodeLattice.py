@@ -10,6 +10,7 @@ from TopoQuest.utilities import lattices
 from itertools import combinations
 import numpy as np 
 import kwant 
+from math import floor
 
 
 class EncodeLattice():
@@ -57,7 +58,6 @@ class EncodeLattice():
         return unitCell
     
     
-    
     def _get_pos_list(self,syst):
         pos_list = []
         for site in syst.sites():
@@ -70,9 +70,14 @@ class EncodeLattice():
     
     def encode(self,syst):
         pos_list = np.array(self._get_pos_list(syst))
+        # Shifting the lattice if there are sites with y < 0 
+        min_y = np.min(pos_list[:,1])
+        if min_y < 0: 
+            shiftVector = floor(min_y/self.ly)*self.ly
+            pos_list[:,1] -= shiftVector
         nlx = int(round(np.max(pos_list[:,0])/self.lx))
        # nly = int(round(np.max(pos_list[:,1]) - np.min(pos_list[:,1])/self.ly) + 1)
-        nly = 10  
+        nly = 20  
         systCode=[]
         for ny in range(nly): 
             rowCode=[]
