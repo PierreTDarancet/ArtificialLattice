@@ -20,9 +20,9 @@ class logistic(object):
         if gridCV is False:
             self.fit = self.reg.fit
         else: 
-            from sklearn.model_selection import GridSearchCv 
-            parameters = {'C':np.lo(0.1,100,5)}
-            clf = GridSearchCv(self.reg,parameters,cv=5)
+            from sklearn.model_selection import GridSearchCV 
+            parameters = {'C':np.logspace(0.1,100,5)}
+            clf = GridSearchCV(self.reg,parameters,cv=5)
             self.fit=clf.fit
             
 
