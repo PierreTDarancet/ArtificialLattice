@@ -879,9 +879,14 @@ class StructGen():
         """
         a = self.lx
         b = self.ly
+        
         #for site in list(self.syst.sites(): 
         act_pos = np.array([site.pos for site in list(self.syst.sites())
                             if 0 <=site.pos[0]<=a])
+        
+        # Increase the edge hopping by delta to avoid WF mixing 
+        self.terminate_edges()
+
         finalized_syst = self.syst.finalized()
         red_pos = np.zeros(np.shape(act_pos))
         red_pos[:,0] = act_pos[:,0]/a
@@ -1123,6 +1128,7 @@ class StructGen():
         for site in sites:
             if self.syst.degree(site) < bulk_degree: 
                 edges.append(site)
-                for neigh in self.syst.neighbors(site): 
-                    self.syst[site,neigh] += delta_t/2.0 
+                for neigh in self.syst.neighbors(site):
+                    if self.syst.degree(neigh) < bulk_degree:
+                        self.syst[site,neigh] += delta_t/2.0 
         

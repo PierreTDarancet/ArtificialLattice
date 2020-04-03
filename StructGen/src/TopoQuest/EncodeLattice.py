@@ -13,14 +13,14 @@ import kwant
 from math import floor
 
 class EncodeLattice():
-    def __init__(self,lat='Armchair',Nlx=10,Nly=10):
+    def __init__(self,lat='Armchair',Nlx=10,Nly=20):
         self.lat = lattices[lat]
         self.lx = self.lat.prim_vecs[0][0]
         self.ly = self.lat.prim_vecs[1][1]
         self.UnitCell = self.getUnitCell(self.lat)
         self.UnitCellPos = self._get_pos_list(self.UnitCell)
         self.encodeDict = self._get_encode_dict()
-        
+        self.nly = Nly         
     def _get_encode_dict(self): 
         encodeDict={}
         vacancy_list = range(len(self.UnitCellPos)+1)
@@ -70,7 +70,7 @@ class EncodeLattice():
             shiftVector = floor(min_y/self.ly)*self.ly
             pos_list[:,1] -= shiftVector
         nlx = int(round(np.max(pos_list[:,0])/self.lx))
-        nly = 20  
+        nly = self.nly  
         systCode=[]
 
         for ny in range(nly): 

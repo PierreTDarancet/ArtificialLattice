@@ -6,6 +6,49 @@ import scipy.linalg as la
 import kwant
 import functools
 
+
+graphene= kwant.lattice.general([[np.sqrt(3)/2,1/2],[np.sqrt(3)/2,-1/2]],  #Lattice vectors 
+                            [[0,0],[1/np.sqrt(3),0]],norbs=1) # Co-ordinates
+Zigzag= kwant.lattice.general([[np.sqrt(3)/3,0],[0,1]], #Lattice vectors
+                            [[0,1/6],[np.sqrt(3)/2,2/6],[np.sqrt(3)/2,4/6],[0,5/6]],norbs=1)
+
+Armchair= kwant.lattice.general([[1,0],[0,np.sqrt(3)/3.0]], #Lattice vectors
+            [[1/6,0],[2/6,np.sqrt(3)/2],[4/6,np.sqrt(3)/2],[5/6,0]],norbs=1)
+
+## Borophene 
+
+TriangularLat = kwant.lattice.triangular(a=1)
+syst_16 = kwant.Builder()
+syst_16[TriangularLat.shape((lambda pos: 0<=pos[0]<3 and 0<=pos[1]<2*np.sin(np.pi/3)),(0,0))]=0 
+syst_16[TriangularLat.neighbors()]=-1 
+
+for site in syst_16.sites(): 
+    if np.all(np.isclose(site.pos,[0,0])): 
+        del syst_16[site]
+        break
+    
+Borophene_16 = kwant.lattice.general([[3,0],[0,2*np.sin(np.pi/3)]],
+                                    [np.array(site.pos) for site in syst_16.sites()])
+
+
+syst_15 = kwant.Builder()
+syst_15[TriangularLat.shape((lambda pos: 0<=pos[0]<5 and 0<=pos[1]<2*np.sin(np.pi/3)),(0,0))]=0 
+syst_15[TriangularLat.neighbors()]=-1 
+del_sites=[]
+for site in syst_15.sites(): 
+    if np.all(np.isclose(site.pos,[0,0])): 
+        del_sites.append(site)
+    elif np.all(np.isclose(site.pos,[2.5,np.sin(np.pi/3)])): 
+        del_sites.append(site)
+
+for site in del_sites: 
+    del syst_15[site]
+
+Borophene_15 = kwant.lattice.general([[5,0],[0,2*np.sin(np.pi/3)]],
+                                    [np.array(site.pos) for site in syst_15.sites()])
+
+
+
 lattices = {   'graphene': kwant.lattice.general([[np.sqrt(3)/2,1/2],[np.sqrt(3)/2,-1/2]],  #Lattice vectors 
                             [[0,0],[1/np.sqrt(3),0]],norbs=1), # Co-ordinates
 
@@ -26,21 +69,20 @@ lattices = {   'graphene': kwant.lattice.general([[np.sqrt(3)/2,1/2],[np.sqrt(3)
                         [[0,0],[0.5,0],[1/4,np.sqrt(3)/4],[0,np.sqrt(3)/2],
                          [0.5,np.sqrt(3)/2],[3/4,3*np.sqrt(3)/4]],norbs=1),
 
-                'Square': kwant.lattice.square()
+                'Square': kwant.lattice.square(),
+                
+                'Borophene_15': Borophene_15, 
+                
+                'Borophene_16': Borophene_16
+                
                 }
 
+
+
 n_atoms_along_x = {'Zigzag':2,'Armchair':4,'Armchair_trans':4,'Lieb':2,'Kagome':2, 
-                   'Square':1}
+                   'Square':1,'Borophene_16':5,'Borophene_15':8}
 n_atoms_along_y = {'Zigzag':4,'Armchair':2,'Armchair_trans':2,'Lieb':2,'Kagome':4, 
-                   'Square':1}
-
-graphene= kwant.lattice.general([[np.sqrt(3)/2,1/2],[np.sqrt(3)/2,-1/2]],  #Lattice vectors 
-                            [[0,0],[1/np.sqrt(3),0]],norbs=1), # Co-ordinates
-Zigzag= kwant.lattice.general([[np.sqrt(3)/3,0],[0,1]], #Lattice vectors
-                            [[0,1/6],[np.sqrt(3)/2,2/6],[np.sqrt(3)/2,4/6],[0,5/6]],norbs=1),
-
-Armchair= kwant.lattice.general([[1,0],[0,np.sqrt(3)/3.0]], #Lattice vectors
-            [[1/6,0],[2/6,np.sqrt(3)/2],[4/6,np.sqrt(3)/2],[5/6,0]],norbs=1),
+                   'Square':1,'Borophene_16':2,'Borophene_15':2}
 
 #lat_dict = {'armchair':Armchair,'zigzag':Zigzag,
 #            'armchair_trans':Armchair_trans}
