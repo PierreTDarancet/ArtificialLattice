@@ -95,7 +95,7 @@ def calc_pol(syst,red_pos,wcc=False ):
                                  convention=2)
     result = z2pack.line.run(system=z2_system, 
                               line=lambda t1: [t1,0],
-                              pos_tol=1e-2,iterator=range(7,1001,2));
+                              pos_tol=1e-3,iterator=range(7,1001,2));
     if wcc: 
         return result.wcc, result.pol
     else: 
@@ -1122,7 +1122,7 @@ class StructGen():
             paths[connection[0],connection[1]]=short_paths
         return paths
         
-    def terminate_edges(self,bulk_degree=3,delta_t=-0.2):
+    def terminate_edges(self,bulk_degree=3,delta_t=-0.002):
         sites = [ site for site in self.syst.sites()]
         edges = []
         for site in sites:
