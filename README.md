@@ -1,2 +1,0 @@
-# ArtificialLattice
-LDRD Project
