@@ -21,7 +21,7 @@ sys.path.insert(0, os.path.abspath('../../src'))
 project = 'TopoQuest'
 copyright = '2019, Srilok Srinivasan'
 author = 'Srilok Srinivasan'
-
+master_doc = 'index'
 # The full version, including alpha/beta/rc tags
 release = 'v0.1'
 

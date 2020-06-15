@@ -95,7 +95,7 @@ def calc_pol(syst,red_pos,wcc=False ):
                                  convention=2)
     result = z2pack.line.run(system=z2_system, 
                               line=lambda t1: [t1,0],
-                              pos_tol=1e-3,iterator=range(7,1001,2));
+                              pos_tol=1e-2,iterator=range(7,1001,2));
     if wcc: 
         return result.wcc, result.pol
     else: 
@@ -187,6 +187,9 @@ class StructGen():
             self.dumpfile = False        
         
     def _get_mirror_symmetric_pairs(self): 
+        """ 
+        Returns the mirror symmetric pairs of sites of the lattice passed
+        """
         mirror_plane = self.lx/2.0
         mirror_sym_pairs = {}
         for site1 in list(self.full_double_syst.sites()): 
@@ -201,6 +204,9 @@ class StructGen():
         return mirror_sym_pairs
     
     def _get_inversion_symmetric_pairs(self): 
+        """
+        Returns the inversion symmetric pairs of sites of the lattice passed
+        """
         inversion_plane = self.lx/2.0
         inv_sym_pairs = {}
         for site1 in list(self.full_double_syst.sites()): 
@@ -216,6 +222,9 @@ class StructGen():
         
                                                 
     def _get_site_pos(self,syst=None):
+        """ 
+        Returns a list of [x,y] positions of the passed lattice
+        """
         if syst is None:
             pos = [site.pos for site in list(self.syst.sites())]
             return pos
@@ -393,10 +402,9 @@ class StructGen():
         return possible_head_tails
     
     def swap_move(self,sym='mirror'):
-        """ 
         """
-        
-        
+        Perform a ring addition or a ring removal operation
+        """
         if sym not in ['mirror','inversion']: 
             raise('sym argument needs to be either "mirror" or "inversion"')
         if sym =='mirror':
@@ -547,7 +555,10 @@ class StructGen():
         return pt1,pt2    
         
     def random_mirror_symmetric(self,symmetry=['mirror'],Ncentral=7): 
-               
+        """ 
+        Perform line sampling operation on the passed lattice to produce a new mirror 
+        symmetric lattice
+        """
         min_width = get_width(Ncentral,self.lat)
         rect_L_plus_W = self.lx/4.0 + self.ly
         self.syst = None 
@@ -609,6 +620,10 @@ class StructGen():
         
     
     def random_inversion_symmetric(self,Ncentral=7): 
+        """ 
+        Perform line sampling operation on the passed lattice to produce a new inversion 
+        symmetric lattice
+        """
         min_width = get_width(Ncentral,self.lat)
         rect_L_plus_W = self.lx/4.0 + self.ly
         self.syst = None 
@@ -714,6 +729,9 @@ class StructGen():
         self.syst=syst
         
     def syst2dump(self,frame=0): 
+        """ 
+        Append the lattice into a LAMMPS dump file 
+        """
         if self.dumpfile:
             l = Lattice.from_lengths_and_angles([self.lx,self.ly,5.0],[90,90,90])
             lammpsBox=[[0.0,l.matrix[0,0]],[0.0,l.matrix[1,1]],
@@ -733,6 +751,9 @@ class StructGen():
             raise('StructGen was not declared with a dump file name')
     
     def dump2syst(self,frame): 
+        """
+        Read a frame from a dump file to make a lattice 
+        """
         def _read_frame(frame):
             xbox,ybox =frame.split('\n',9)[-5:-3]
             lx,ly = float(xbox.split()[-1]),float(ybox.split()[-1])
@@ -885,7 +906,7 @@ class StructGen():
                             if 0 <=site.pos[0]<=a])
         
         # Increase the edge hopping by delta to avoid WF mixing 
-        self.terminate_edges()
+        #self.terminate_edges()
 
         finalized_syst = self.syst.finalized()
         red_pos = np.zeros(np.shape(act_pos))
@@ -894,6 +915,9 @@ class StructGen():
         return calc_pol(finalized_syst,red_pos,wcc=wcc);
     
     def plot_syst(self): 
+        """ 
+        Plot the current state of the lattice contained in StructGen class
+        """
         kwant.plot(self.syst)
         
     def _get_bands(self,momenta=(-np.pi,np.pi)): 
@@ -1123,6 +1147,11 @@ class StructGen():
         return paths
         
     def terminate_edges(self,bulk_degree=3,delta_t=-0.002):
+        """ 
+        Increase the hopping between the sites which are under co-ordinated and are also neighbors
+        The increse in hopping is to account for the bond shrinkage at the edge and hydrogen termination
+        of the nanoribbons
+        """
         sites = [ site for site in self.syst.sites()]
         edges = []
         for site in sites:

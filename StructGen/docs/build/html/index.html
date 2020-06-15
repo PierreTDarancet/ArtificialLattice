@@ -1,22 +1,34 @@
 
-<!DOCTYPE html>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-    <meta charset="utf-8" />
-    <title>Welcome to TopoQuest’s documentation! &#8212; TopoQuest v0.1 documentation</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Welcome to TopoSwarm’s documentation! &#8212; TopoQuest v0.1 documentation</title>
+    
     <link rel="stylesheet" href="_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     
-    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     'v0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <script type="text/javascript" src="_static/language_data.js"></script>
-    
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" /> 
-  </head><body>
+  </head>
+  <body>
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
@@ -32,9 +44,9 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="welcome-to-topoquest-s-documentation">
-<h1>Welcome to TopoQuest’s documentation!<a class="headerlink" href="#welcome-to-topoquest-s-documentation" title="Permalink to this headline">¶</a></h1>
-<p><code class="docutils literal notranslate"><span class="pre">TopoQuest</span></code> is a high throughput tight binding based python package the <code class="docutils literal notranslate"><span class="pre">quest</span> <span class="pre">of</span> <span class="pre">topological</span> <span class="pre">materials</span></code> with bound states. <code class="docutils literal notranslate"><span class="pre">TopoQuest</span></code> is built on <code class="docutils literal notranslate"><span class="pre">kwant</span></code> [REF] tight-binding package and <code class="docutils literal notranslate"><span class="pre">Z2pack</span></code> package from David Vanderbilt’s group. <code class="docutils literal notranslate"><span class="pre">TopoQuest</span></code> samples the geometric space of structures satisfying the specified symmetry and geometric constrains as a graph. The graph is passed on to <code class="docutils literal notranslate"><span class="pre">kwant</span></code> which constructs the tight binding hamiltonian. The functions in <code class="docutils literal notranslate"><span class="pre">Z2pack</span></code> are used to compute the intercell Zak Phase (the origin independant but cell dependant part of Zak Phase) which characterises the topological invariant.</p>
+  <div class="section" id="welcome-to-toposwarm-s-documentation">
+<h1>Welcome to TopoSwarm’s documentation!<a class="headerlink" href="#welcome-to-toposwarm-s-documentation" title="Permalink to this headline">¶</a></h1>
+<p><code class="docutils literal"><span class="pre">TopoSwarm</span></code> is a high throughput tight binding based python package the <code class="docutils literal"><span class="pre">quest</span> <span class="pre">of</span> <span class="pre">topological</span> <span class="pre">materials</span></code> with bound states. <code class="docutils literal"><span class="pre">TopoSwarm</span></code> is built on <code class="docutils literal"><span class="pre">kwant</span></code> [REF] tight-binding package and <code class="docutils literal"><span class="pre">Z2pack</span></code> package from David Vanderbilt’s group. <code class="docutils literal"><span class="pre">TopoSwarm</span></code> samples the geometric space of structures satisfying the specified symmetry and geometric constrains as a graph. The graph is passed on to <code class="docutils literal"><span class="pre">kwant</span></code> which constructs the tight binding hamiltonian. The functions in <code class="docutils literal"><span class="pre">Z2pack</span></code> are used to compute the intercell Zak Phase (the origin independant but cell dependant part of Zak Phase) which characterises the topological invariant.</p>
 <div class="toctree-wrapper compound">
 </div>
 </div>
@@ -42,201 +54,302 @@
 <h1>Code documentation<a class="headerlink" href="#code-documentation" title="Permalink to this headline">¶</a></h1>
 <dl class="class">
 <dt id="TopoQuest.StructGen.StructGen">
-<em class="property">class </em><code class="sig-prename descclassname">TopoQuest.StructGen.</code><code class="sig-name descname">StructGen</code><span class="sig-paren">(</span><em class="sig-param">lat='graphene'</em>, <em class="sig-param">nlx=5</em>, <em class="sig-param">nly=5</em>, <em class="sig-param">onsite=0</em>, <em class="sig-param">hop=-1</em>, <em class="sig-param">syst=None</em>, <em class="sig-param">dumpfile=None</em><span class="sig-paren">)</span><a class="headerlink" href="#TopoQuest.StructGen.StructGen" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">TopoQuest.StructGen.</code><code class="descname">StructGen</code><span class="sig-paren">(</span><em>lat=’graphene’</em>, <em>nlx=5</em>, <em>nly=5</em>, <em>onsite=0</em>, <em>hop=-1</em>, <em>syst=None</em>, <em>dumpfile=None</em><span class="sig-paren">)</span><a class="headerlink" href="#TopoQuest.StructGen.StructGen" title="Permalink to this definition">¶</a></dt>
 <dd><p>Class for random 1D structure generator</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>lat: kwant.lattice</strong></dt><dd><p>Lattice used for structure generation</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>lat: kwant.lattice</strong></dt>
+<dd><p class="first last">Lattice used for structure generation</p>
 </dd>
-<dt><strong>lx: float</strong></dt><dd><p>Lenght of the unit cell</p>
+<dt><strong>lx: float</strong></dt>
+<dd><p class="first last">Lenght of the unit cell</p>
 </dd>
-<dt><strong>ly: float</strong></dt><dd><p>Width of the unit cell</p>
+<dt><strong>ly: float</strong></dt>
+<dd><p class="first last">Width of the unit cell</p>
 </dd>
-<dt><strong>onsite: float</strong></dt><dd><p>Onsite energy</p>
+<dt><strong>onsite: float</strong></dt>
+<dd><p class="first last">Onsite energy</p>
 </dd>
-<dt><strong>hop: float</strong></dt><dd><p>Hopping</p>
+<dt><strong>hop: float</strong></dt>
+<dd><p class="first last">Hopping</p>
 </dd>
-<dt><strong>syst: kwant.Builder</strong></dt><dd><p>Geometry generated by the Class</p>
+<dt><strong>syst: kwant.Builder</strong></dt>
+<dd><p class="first last">Geometry generated by the Class</p>
 </dd>
 </dl>
-</dd>
-</dl>
+</td>
+</tr>
+</tbody>
+</table>
 <dl class="method">
 <dt id="TopoQuest.StructGen.StructGen.construct_graph">
-<code class="sig-name descname">construct_graph</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">draw=False</em><span class="sig-paren">)</span><a class="headerlink" href="#TopoQuest.StructGen.StructGen.construct_graph" title="Permalink to this definition">¶</a></dt>
+<code class="descname">construct_graph</code><span class="sig-paren">(</span><em>draw=False</em><span class="sig-paren">)</span><a class="headerlink" href="#TopoQuest.StructGen.StructGen.construct_graph" title="Permalink to this definition">¶</a></dt>
 <dd><p>Construct a directed graph from the kwant system. The direction of the
 graph is from left to right (increasing x).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>draw: boolean</strong></dt><dd><p>If true, outputs visualization of the graph</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>draw: boolean</strong></dt>
+<dd><p class="first last">If true, outputs visualization of the graph</p>
 </dd>
 </dl>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><dl class="simple">
-<dt><strong>G</strong><span class="classifier">nx.DiGraph instance</span></dt><dd><p>Graph of the kwant system</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>G</strong> <span class="classifier-delimiter">:</span> <span class="classifier">nx.DiGraph instance</span></dt>
+<dd><p class="first last">Graph of the kwant system</p>
 </dd>
 </dl>
-</dd>
-</dl>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="TopoQuest.StructGen.StructGen.draw_lattice_graph">
-<code class="sig-name descname">draw_lattice_graph</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">graph=None</em>, <em class="sig-param">figsize=None</em><span class="sig-paren">)</span><a class="headerlink" href="#TopoQuest.StructGen.StructGen.draw_lattice_graph" title="Permalink to this definition">¶</a></dt>
+<code class="descname">draw_lattice_graph</code><span class="sig-paren">(</span><em>graph=None</em>, <em>figsize=None</em><span class="sig-paren">)</span><a class="headerlink" href="#TopoQuest.StructGen.StructGen.draw_lattice_graph" title="Permalink to this definition">¶</a></dt>
 <dd><p>Draws the graph of the kwant system with nodes mapped accroding
 to the position of the sites</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="TopoQuest.StructGen.StructGen.dump2syst">
+<code class="descname">dump2syst</code><span class="sig-paren">(</span><em>frame</em><span class="sig-paren">)</span><a class="headerlink" href="#TopoQuest.StructGen.StructGen.dump2syst" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read a frame from a dump file to make a lattice</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="TopoQuest.StructGen.StructGen.find_paths_across_cell">
-<code class="sig-name descname">find_paths_across_cell</code><span class="sig-paren">(</span><em class="sig-param">self</em><span class="sig-paren">)</span><a class="headerlink" href="#TopoQuest.StructGen.StructGen.find_paths_across_cell" title="Permalink to this definition">¶</a></dt>
+<code class="descname">find_paths_across_cell</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#TopoQuest.StructGen.StructGen.find_paths_across_cell" title="Permalink to this definition">¶</a></dt>
 <dd><p>Find the shortest simple paths from the left end of the unit cell to
 the right end for each bond crossing the unit cell</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><dl class="simple">
-<dt>paths: dict</dt><dd><p>key: index of head, index of tail
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>paths: dict</strong></dt>
+<dd><p class="first last">key: index of head, index of tail
 values: paths</p>
 </dd>
 </dl>
-</dd>
-</dl>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="TopoQuest.StructGen.StructGen.get_adjacency">
-<code class="sig-name descname">get_adjacency</code><span class="sig-paren">(</span><em class="sig-param">self</em><span class="sig-paren">)</span><a class="headerlink" href="#TopoQuest.StructGen.StructGen.get_adjacency" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_adjacency</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#TopoQuest.StructGen.StructGen.get_adjacency" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the Adjacency Matrix.
 The adjacency matrix is built from the hopping pairs of the kwant system
 so it is symmetric.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><dl class="simple">
-<dt>adjMat: numpy array</dt><dd><p>Symmetric Adjacency matrix</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>adjMat: numpy array</strong></dt>
+<dd><p class="first last">Symmetric Adjacency matrix</p>
 </dd>
 </dl>
-</dd>
-</dl>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="TopoQuest.StructGen.StructGen.get_pol">
-<code class="sig-name descname">get_pol</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">wcc=False</em><span class="sig-paren">)</span><a class="headerlink" href="#TopoQuest.StructGen.StructGen.get_pol" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_pol</code><span class="sig-paren">(</span><em>wcc=False</em><span class="sig-paren">)</span><a class="headerlink" href="#TopoQuest.StructGen.StructGen.get_pol" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the polarization of the geometry corresponding to the curent
 state of the random structure generator</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><dl class="simple">
-<dt>pol: float</dt><dd><p>Polarization. Quantized at 0 or 0.5 if the system has spatial
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>pol: float</strong></dt>
+<dd><p class="first last">Polarization. Quantized at 0 or 0.5 if the system has spatial
 symmetries</p>
 </dd>
 </dl>
-</dd>
-</dl>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="TopoQuest.StructGen.StructGen.get_syst">
-<code class="sig-name descname">get_syst</code><span class="sig-paren">(</span><em class="sig-param">self</em><span class="sig-paren">)</span><a class="headerlink" href="#TopoQuest.StructGen.StructGen.get_syst" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_syst</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#TopoQuest.StructGen.StructGen.get_syst" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the kwant.Builder instance corresponding to the current state
 of the random structure generator</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="TopoQuest.StructGen.StructGen.plot_syst">
+<code class="descname">plot_syst</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#TopoQuest.StructGen.StructGen.plot_syst" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot the current state of the lattice contained in StructGen class</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="TopoQuest.StructGen.StructGen.poscar2syst">
-<code class="sig-name descname">poscar2syst</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">POSCAR</em><span class="sig-paren">)</span><a class="headerlink" href="#TopoQuest.StructGen.StructGen.poscar2syst" title="Permalink to this definition">¶</a></dt>
+<code class="descname">poscar2syst</code><span class="sig-paren">(</span><em>POSCAR</em><span class="sig-paren">)</span><a class="headerlink" href="#TopoQuest.StructGen.StructGen.poscar2syst" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reads a POSCAR file and generates a kwant system with the same geometery.
 The onsite and hopping are those of the generator. lx, ly and lattice
 of the generator must match that of the poscar files. Use
 set_cell_attributes() to set lx,ly and lattice.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>POSCAR: str</strong></dt><dd><p>path to POSCAR file</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>POSCAR: str</strong></dt>
+<dd><p class="first last">path to POSCAR file</p>
 </dd>
 </dl>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><dl class="simple">
-<dt>kwant.Builder() instance</dt><dd></dd>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>kwant.Builder() instance</strong></dt>
+<dd></dd>
 </dl>
-</dd>
-</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="TopoQuest.StructGen.StructGen.random_inversion_symmetric">
+<code class="descname">random_inversion_symmetric</code><span class="sig-paren">(</span><em>Ncentral=7</em><span class="sig-paren">)</span><a class="headerlink" href="#TopoQuest.StructGen.StructGen.random_inversion_symmetric" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform line sampling operation on the passed lattice to produce a new inversion
+symmetric lattice</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="TopoQuest.StructGen.StructGen.random_mirror_symmetric">
+<code class="descname">random_mirror_symmetric</code><span class="sig-paren">(</span><em>symmetry=[‘mirror’], Ncentral=7</em><span class="sig-paren">)</span><a class="headerlink" href="#TopoQuest.StructGen.StructGen.random_mirror_symmetric" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform line sampling operation on the passed lattice to produce a new mirror
+symmetric lattice</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="TopoQuest.StructGen.StructGen.set_cell_attributes">
-<code class="sig-name descname">set_cell_attributes</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">lat='Armchair'</em>, <em class="sig-param">nlx=5</em>, <em class="sig-param">nly=5</em><span class="sig-paren">)</span><a class="headerlink" href="#TopoQuest.StructGen.StructGen.set_cell_attributes" title="Permalink to this definition">¶</a></dt>
+<code class="descname">set_cell_attributes</code><span class="sig-paren">(</span><em>lat=’Armchair’</em>, <em>nlx=5</em>, <em>nly=5</em><span class="sig-paren">)</span><a class="headerlink" href="#TopoQuest.StructGen.StructGen.set_cell_attributes" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reset the size of the StructGen box and lattice</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>lat: string</strong></dt><dd><p>One of the valid lattices - (‘Armchair’,’Zigzag’,’Lieb’,Kagome’)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>lat: string</strong></dt>
+<dd><p class="first last">One of the valid lattices - (‘Armchair’,’Zigzag’,’Lieb’,Kagome’)</p>
 </dd>
-<dt><strong>nlx: integer</strong></dt><dd><p>Number of unit cells along x</p>
+<dt><strong>nlx: integer</strong></dt>
+<dd><p class="first last">Number of unit cells along x</p>
 </dd>
-<dt><strong>nly: integer</strong></dt><dd><p>Number of unit cells along y</p>
+<dt><strong>nly: integer</strong></dt>
+<dd><p class="first last">Number of unit cells along y</p>
 </dd>
 </dl>
-</dd>
-</dl>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="TopoQuest.StructGen.StructGen.set_syst">
-<code class="sig-name descname">set_syst</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">syst</em><span class="sig-paren">)</span><a class="headerlink" href="#TopoQuest.StructGen.StructGen.set_syst" title="Permalink to this definition">¶</a></dt>
+<code class="descname">set_syst</code><span class="sig-paren">(</span><em>syst</em><span class="sig-paren">)</span><a class="headerlink" href="#TopoQuest.StructGen.StructGen.set_syst" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sets the current state of the random structure generator to the system
 given</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>syst: kwant.Builder instance</strong></dt><dd></dd>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>syst: kwant.Builder instance</strong></dt>
+<dd></dd>
 </dl>
-</dd>
-</dl>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="TopoQuest.StructGen.StructGen.swap_move">
-<code class="sig-name descname">swap_move</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">sym='mirror'</em><span class="sig-paren">)</span><a class="headerlink" href="#TopoQuest.StructGen.StructGen.swap_move" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="descname">swap_move</code><span class="sig-paren">(</span><em>sym=’mirror’</em><span class="sig-paren">)</span><a class="headerlink" href="#TopoQuest.StructGen.StructGen.swap_move" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform a ring addition or a ring removal operation</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="TopoQuest.StructGen.StructGen.syst2dump">
+<code class="descname">syst2dump</code><span class="sig-paren">(</span><em>frame=0</em><span class="sig-paren">)</span><a class="headerlink" href="#TopoQuest.StructGen.StructGen.syst2dump" title="Permalink to this definition">¶</a></dt>
+<dd><p>Append the lattice into a LAMMPS dump file</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="TopoQuest.StructGen.StructGen.syst2poscar">
-<code class="sig-name descname">syst2poscar</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">filename='POSCAR'</em><span class="sig-paren">)</span><a class="headerlink" href="#TopoQuest.StructGen.StructGen.syst2poscar" title="Permalink to this definition">¶</a></dt>
+<code class="descname">syst2poscar</code><span class="sig-paren">(</span><em>filename=’POSCAR’</em><span class="sig-paren">)</span><a class="headerlink" href="#TopoQuest.StructGen.StructGen.syst2poscar" title="Permalink to this definition">¶</a></dt>
 <dd><p>Saves the current state of the random structure generator as a
 POSCAR file</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>filename: str</strong></dt><dd><p>Path to the POSCAR file</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>filename: str</strong></dt>
+<dd><p class="first last">Path to the POSCAR file</p>
 </dd>
 </dl>
-</dd>
-</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="TopoQuest.StructGen.StructGen.terminate_edges">
+<code class="descname">terminate_edges</code><span class="sig-paren">(</span><em>bulk_degree=3</em>, <em>delta_t=-0.002</em><span class="sig-paren">)</span><a class="headerlink" href="#TopoQuest.StructGen.StructGen.terminate_edges" title="Permalink to this definition">¶</a></dt>
+<dd><p>Increase the hopping between the sites which are under co-ordinated and are also neighbors
+The increse in hopping is to account for the bond shrinkage at the edge and hydrogen termination
+of the nanoribbons</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="TopoQuest.StructGen.StructGen.translate_cell">
-<code class="sig-name descname">translate_cell</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">t=None</em><span class="sig-paren">)</span><a class="headerlink" href="#TopoQuest.StructGen.StructGen.translate_cell" title="Permalink to this definition">¶</a></dt>
+<code class="descname">translate_cell</code><span class="sig-paren">(</span><em>t=None</em><span class="sig-paren">)</span><a class="headerlink" href="#TopoQuest.StructGen.StructGen.translate_cell" title="Permalink to this definition">¶</a></dt>
 <dd><p>Translates the x-coordinate of the sites by “t”.
 Can also be thought of as shifting/sliding the unit cell boundary over a fixed lattice</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>t = float</strong></dt><dd><p>offset, default = lx/2.0</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>t = float</strong></dt>
+<dd><p class="first last">offset, default = lx/2.0</p>
 </dd>
 </dl>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><dl class="simple">
-<dt>kwant.Builder() instance</dt><dd></dd>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>kwant.Builder() instance</strong></dt>
+<dd></dd>
 </dl>
-</dd>
-</dl>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </dd></dl>
@@ -246,26 +359,32 @@ Can also be thought of as shifting/sliding the unit cell boundary over a fixed l
 <h1>Redundancy Checker<a class="headerlink" href="#redundancy-checker" title="Permalink to this headline">¶</a></h1>
 <dl class="class">
 <dt id="TopoQuest.StructGen.Check_redundant">
-<em class="property">class </em><code class="sig-prename descclassname">TopoQuest.StructGen.</code><code class="sig-name descname">Check_redundant</code><a class="headerlink" href="#TopoQuest.StructGen.Check_redundant" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">TopoQuest.StructGen.</code><code class="descname">Check_redundant</code><a class="headerlink" href="#TopoQuest.StructGen.Check_redundant" title="Permalink to this definition">¶</a></dt>
 <dd><p>Class containing methods to check for redundancy between the randomly
 generated structures by StructGen()</p>
 <dl class="method">
 <dt id="TopoQuest.StructGen.Check_redundant.is_redundant">
-<code class="sig-name descname">is_redundant</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">syst</em>, <em class="sig-param">index_dict</em><span class="sig-paren">)</span><a class="headerlink" href="#TopoQuest.StructGen.Check_redundant.is_redundant" title="Permalink to this definition">¶</a></dt>
+<code class="descname">is_redundant</code><span class="sig-paren">(</span><em>syst</em>, <em>index_dict</em><span class="sig-paren">)</span><a class="headerlink" href="#TopoQuest.StructGen.Check_redundant.is_redundant" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns True if the structure has been seen before by the generator</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>syst</strong><span class="classifier">kwant.system.InfiniteSystem</span></dt><dd><p>System that needs to be checked</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>syst</strong> <span class="classifier-delimiter">:</span> <span class="classifier">kwant.system.InfiniteSystem</span></dt>
+<dd><p class="first last">System that needs to be checked</p>
 </dd>
 </dl>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><dl class="simple">
-<dt>Boolean</dt><dd></dd>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>Boolean</strong></dt>
+<dd></dd>
 </dl>
-</dd>
-</dl>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </dd></dl>
@@ -274,9 +393,9 @@ generated structures by StructGen()</p>
 <div class="section" id="indices-and-tables">
 <h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
 <ul class="simple">
-<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
-<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
-<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+<li><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></li>
+<li><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></li>
+<li><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></li>
 </ul>
 </div>
 
@@ -286,9 +405,9 @@ generated structures by StructGen()</p>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-  <h3><a href="#">Table of Contents</a></h3>
+  <h3><a href="#">Table Of Contents</a></h3>
   <ul>
-<li><a class="reference internal" href="#">Welcome to TopoQuest’s documentation!</a></li>
+<li><a class="reference internal" href="#">Welcome to TopoSwarm’s documentation!</a></li>
 <li><a class="reference internal" href="#code-documentation">Code documentation</a></li>
 <li><a class="reference internal" href="#redundancy-checker">Redundancy Checker</a></li>
 <li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
@@ -302,13 +421,13 @@ generated structures by StructGen()</p>
     </ul>
    </div>
 <div id="searchbox" style="display: none" role="search">
-  <h3 id="searchlabel">Quick search</h3>
-    <div class="searchformwrapper">
+  <h3>Quick search</h3>
     <form class="search" action="search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
-      <input type="submit" value="Go" />
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
     </form>
-    </div>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
@@ -326,7 +445,7 @@ generated structures by StructGen()</p>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2019, Srilok Srinivasan.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.1.2.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6b3.
     </div>
   </body>
 </html>
